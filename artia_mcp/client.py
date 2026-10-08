@@ -36,6 +36,7 @@ class ArtiaConfig:
     client_secret: str
     organization_id: str
     account_id: int | None = None
+    user_email: str | None = None
     api_url: str = DEFAULT_API_URL
     timeout: float = 30.0
 
@@ -54,6 +55,7 @@ class ArtiaConfig:
             client_secret=os.environ["ARTIA_CLIENT_SECRET"],
             organization_id=os.environ["ARTIA_ORGANIZATION_ID"],
             account_id=int(account_id) if account_id else None,
+            user_email=os.environ.get("ARTIA_USER_EMAIL") or None,
             api_url=os.environ.get("ARTIA_API_URL") or DEFAULT_API_URL,
         )
 
@@ -94,7 +96,8 @@ class ArtiaClient:
             return self._post(query, variables or {}, auth=True)
 
     def introspect(self) -> dict[str, Any]:
-        return self.execute(get_introspection_query(descriptions=True))
+        # A API do Artia aceita introspecção sem token.
+        return self._post(get_introspection_query(descriptions=True), {}, auth=False)
 
     def resolve_account_id(self, account_id: int | None) -> int:
         resolved = account_id if account_id is not None else self.config.account_id

@@ -6,12 +6,37 @@ import json
 from datetime import date
 from typing import Any
 
+from graphql import GraphQLError, OperationDefinitionNode, parse
 from mcp.server.mcpserver import MCPServer
+from mcp.types import ToolAnnotations
 
 from . import operations as ops
 from .client import ArtiaClient, ArtiaConfig, ArtiaError
 
-mcp = MCPServer("artia")
+INSTRUCTIONS = """\
+Servidor do Artia (projetos, atividades e apontamentos de horas).
+
+Fluxo recomendado:
+1. artia_test_connection para confirmar organização e grupo de trabalho.
+   Para registrar horas, artia_list_my_open_activities mostra onde apontar.
+2. artia_list_projects para achar o projeto; as atividades ficam em subpastas,
+   então use o folderId da pasta da atividade (artia_list_activities no ID do
+   projeto pode responder "Esse grupo de trabalho não possui atividades").
+3. Antes de criar, alterar ou excluir, confirme com o usuário o que será gravado.
+
+Particularidades confirmadas na API real:
+- Apontamento: duration é enviada em horas decimais (0.25 = 15 min); a ferramenta
+  aceita minutos ou "1:30" e converte. dateAt = AAAA-MM-DD; startTime = HH:MM.
+- Apontamento exige status_id (situação da atividade); obtenha os IDs com
+  artia_list_activity_statuses. Sem ele o Artia recusa o registro.
+- artia_graphql executa leituras direto; mutations só rodam com confirm=true.
+"""
+
+READ = ToolAnnotations(read_only_hint=True, open_world_hint=True)
+WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=True)
+DELETE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=True)
+
+mcp = MCPServer("artia", instructions=INSTRUCTIONS)
 _client: ArtiaClient | None = None
 
 
@@ -33,56 +58,95 @@ def _account(account_id: int | None) -> int:
 
 
 # ------------------------------------------------------------------ diagnóstico
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_test_connection() -> dict[str, Any]:
-    """Testa a autenticação no Artia e retorna o status da conexão."""
+    """Testa a autenticação e confirma a organização e o grupo de trabalho configurados."""
+    client = get_client()
     try:
-        get_client().authenticate(force=True)
-        return {"ok": True, "message": "Autenticado com sucesso no Artia."}
+        client.authenticate(force=True)
     except ArtiaError as exc:
         return {"ok": False, "message": str(exc)}
+    result: dict[str, Any] = {"ok": True, "message": "Autenticado com sucesso no Artia."}
+    try:
+        # listingOrganizations é recusada para token de integração; o organizationId
+        # dos tipos de pasta confirma a organização do token.
+        types = client.execute("{ listingFolderTypes(fetchAll: true) { organizationId } }")
+        org_ids = {t.get("organizationId") for t in types.get("listingFolderTypes") or []}
+        configured = str(client.config.organization_id)
+        result["organization"] = {
+            "configured": configured,
+            "confirmed": org_ids == {int(configured)} if configured.isdigit() else False,
+        }
+        if client.config.account_id is not None:
+            folder = client.execute(
+                "query($id: ID!) { showFolder(id: $id) { id name } }",
+                {"id": str(client.config.account_id)},
+            )
+            result["account"] = folder.get("showFolder")
+    except ArtiaError as exc:
+        result["warning"] = f"Autenticado, mas não foi possível confirmar organização/grupo: {exc}"
+    return result
 
 
-@mcp.tool()
-def artia_graphql(query: str, variables: dict[str, Any] | None = None) -> Any:
-    """Executa uma query/mutation GraphQL arbitrária no Artia (uso avançado)."""
+def _mutation_fields(query: str) -> list[str]:
+    """Campos raiz das mutations do documento (vazio se só houver queries)."""
+    try:
+        document = parse(query)
+    except GraphQLError as exc:
+        raise ValueError(f"GraphQL inválido: {exc.message}") from exc
+    return [
+        selection.name.value
+        for definition in document.definitions
+        if isinstance(definition, OperationDefinitionNode) and definition.operation.value == "mutation"
+        for selection in definition.selection_set.selections
+        if hasattr(selection, "name")
+    ]
+
+
+@mcp.tool(annotations=DELETE)
+def artia_graphql(
+    query: str, variables: dict[str, Any] | None = None, confirm: bool = False
+) -> Any:
+    """Executa uma query/mutation GraphQL arbitrária no Artia (uso avançado).
+
+    Queries rodam direto. Mutations só rodam com confirm=true; sem isso a
+    ferramenta devolve as operações que seriam executadas, para confirmar com
+    o usuário antes (atenção a destroy*, que apaga dados em definitivo).
+    """
+    mutations = _mutation_fields(query)
+    if mutations and not confirm:
+        return {
+            "executed": False,
+            "requires_confirmation": True,
+            "mutations": mutations,
+            "destructive": [m for m in mutations if m.startswith("destroy")],
+            "variables": variables or {},
+            "message": "Confirme com o usuário e chame de novo com confirm=true.",
+        }
     return get_client().execute(query, variables or {})
 
 
 # --------------------------------------------------------------------- projetos
-@mcp.tool()
-def artia_list_projects(
-    account_id: int | None = None, page: int | None = None, status: str | None = None
-) -> Any:
+@mcp.tool(annotations=READ)
+def artia_list_projects(account_id: int | None = None) -> Any:
     """Lista os projetos de um grupo de trabalho (accountId)."""
-    return _run(ops.LIST_PROJECTS, accountId=_account(account_id), page=page, status=status)
+    return _run(ops.LIST_PROJECTS, accountId=_account(account_id))
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_get_project(project_id: str, account_id: int | None = None) -> Any:
     """Retorna os detalhes de um projeto."""
     return _run(ops.SHOW_PROJECT, id=str(project_id), accountId=_account(account_id))
 
 
 # ------------------------------------------------------------------- atividades
-@mcp.tool()
-def artia_list_activities(
-    folder_id: int,
-    account_id: int | None = None,
-    page: int | None = None,
-    status: str | None = None,
-) -> Any:
+@mcp.tool(annotations=READ)
+def artia_list_activities(folder_id: int, account_id: int | None = None) -> Any:
     """Lista as atividades de uma pasta/projeto (folderId) do Artia."""
-    return _run(
-        ops.LIST_ACTIVITIES,
-        accountId=_account(account_id),
-        folderId=folder_id,
-        page=page,
-        status=status,
-    )
+    return _run(ops.LIST_ACTIVITIES, accountId=_account(account_id), folderId=folder_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_get_activity(activity_id: str, folder_id: int, account_id: int | None = None) -> Any:
     """Retorna os detalhes de uma atividade."""
     return _run(
@@ -90,7 +154,7 @@ def artia_get_activity(activity_id: str, folder_id: int, account_id: int | None 
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_create_activity(
     folder_id: int,
     title: str,
@@ -119,12 +183,12 @@ def artia_create_activity(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_update_activity(
     activity_id: str,
     folder_id: int,
+    title: str,
     account_id: int | None = None,
-    title: str | None = None,
     description: str | None = None,
     estimated_start: str | None = None,
     estimated_end: str | None = None,
@@ -133,7 +197,10 @@ def artia_update_activity(
     category: str | None = None,
     priority: int | None = None,
 ) -> Any:
-    """Atualiza campos de uma atividade. Só os campos informados são enviados."""
+    """Atualiza campos de uma atividade. Só os campos informados são enviados.
+
+    O Artia exige o título em toda atualização (repita o atual se não mudar).
+    """
     return _run(
         ops.UPDATE_ACTIVITY,
         id=str(activity_id),
@@ -150,18 +217,104 @@ def artia_update_activity(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_change_activity_status(
-    activity_id: str, folder_id: int, status: int, account_id: int | None = None
+    activity_id: str,
+    folder_id: int,
+    custom_status_id: int | None = None,
+    status: bool | None = None,
+    account_id: int | None = None,
 ) -> Any:
-    """Altera o status de uma atividade (código numérico de status do Artia)."""
+    """Altera o status de uma atividade.
+
+    custom_status_id: ID do status personalizado da organização.
+    status: status booleano da atividade (campo ``status`` do Artia).
+    """
+    if custom_status_id is None and status is None:
+        raise ValueError("Informe custom_status_id e/ou status.")
     return _run(
         ops.CHANGE_ACTIVITY_STATUS,
         id=str(activity_id),
         accountId=_account(account_id),
         folderId=folder_id,
+        customStatusId=custom_status_id,
         status=status,
     )
+
+
+# Proteção contra paginação sem fim caso a API não informe totalPages.
+MAX_PAGES = 20
+
+
+def _resolve_user_id(email: str | None) -> int:
+    email = email or get_client().config.user_email
+    if not email:
+        raise ArtiaError("Informe email ou defina ARTIA_USER_EMAIL (e-mail do seu usuário no Artia).")
+    users = _run(ops.LIST_ORGANIZATION_USERS) or []
+    for user in users:
+        if (user.get("email") or "").strip().lower() == email.strip().lower():
+            return int(user["userId"])
+    raise ArtiaError(f"Nenhum usuário do Artia com o e-mail {email}.")
+
+
+@mcp.tool(annotations=READ)
+def artia_list_my_open_activities(
+    email: str | None = None, account_id: int | None = None
+) -> list[dict[str, Any]]:
+    """Lista as atividades em aberto (não encerradas) em que você é responsável.
+
+    email: seu e-mail no Artia (padrão: ARTIA_USER_EMAIL). Retorna id, título,
+    pasta (folder_id/folder) e situação, ordenadas pelo término previsto; use
+    id e folder_id em artia_create_time_entry e nas ferramentas de atividade.
+    """
+    user_id = _resolve_user_id(email)
+    account = _account(account_id)
+    activities: list[dict[str, Any]] = []
+    page = 1
+    while page <= MAX_PAGES:
+        data = _run(
+            ops.LIST_ACTIVITIES_V2,
+            accountId=account,
+            page=page,
+            filter={"responsibleUserIds": [user_id]},
+        ) or {}
+        activities.extend(data.get("activities") or [])
+        if page >= (data.get("totalPages") or 1):
+            break
+        page += 1
+    open_activities = [
+        {
+            "id": a.get("id"),
+            "title": a.get("title"),
+            "folder_id": a.get("folderId"),
+            "folder": (a.get("parent") or {}).get("name"),
+            "status": (a.get("customStatus") or {}).get("statusName"),
+            "completed_percent": a.get("completedPercent"),
+            "estimated_start": a.get("estimatedStart"),
+            "estimated_end": a.get("estimatedEnd"),
+        }
+        for a in activities
+        if not a.get("status")  # status true = atividade encerrada
+    ]
+    return sorted(open_activities, key=lambda a: (a["estimated_end"] is None, a["estimated_end"] or ""))
+
+
+@mcp.tool(annotations=READ)
+def artia_list_activity_statuses(
+    account_id: int | None = None, include_inactive: bool = False
+) -> Any:
+    """Lista as situações de atividade do grupo de trabalho, em ordem de exibição.
+
+    Use o ``id`` como ``status_id`` em artia_create_time_entry ou como
+    ``custom_status_id`` em artia_change_activity_status.
+    """
+    statuses = _run(
+        ops.LIST_CUSTOM_STATUSES,
+        accounts=[_account(account_id)],
+        statusObject="Activity",
+        inactive=None if include_inactive else False,
+    ) or []
+    return sorted(statuses, key=lambda s: s.get("position") or 0)
 
 
 # ---------------------------------------------------------------- apontamentos
@@ -181,55 +334,54 @@ def parse_duration(value: str | int) -> int:
     return minutes
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_list_time_entries(
     account_id: int | None = None,
+    folder_id: int | None = None,
     activity_id: int | None = None,
-    user_id: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    page: int | None = None,
+    only_mine: bool | None = None,
 ) -> Any:
-    """Lista apontamentos de horas, com filtros opcionais (datas AAAA-MM-DD)."""
+    """Lista apontamentos de horas, com filtros opcionais por pasta, atividade ou só os meus."""
     return _run(
         ops.LIST_TIME_ENTRIES,
         accountId=_account(account_id),
+        folderId=folder_id,
         activityId=activity_id,
-        userId=user_id,
-        startDate=start_date,
-        endDate=end_date,
-        page=page,
+        onlyMine=only_mine,
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_create_time_entry(
     activity_id: int,
     duration: str,
+    start_time: str,
+    status_id: int,
     date_at: str | None = None,
     account_id: int | None = None,
-    start_time: str | None = None,
-    end_time: str | None = None,
     observation: str | None = None,
 ) -> Any:
     """Registra um apontamento de horas em uma atividade.
 
-    duration: minutos ("90") ou horas ("1:30", "1h30"). date_at: AAAA-MM-DD
-    (padrão: hoje). start_time/end_time: HH:MM, opcionais.
+    duration: minutos ("90") ou horas ("1:30", "1h30"); é enviada ao Artia em
+    horas decimais. start_time: HH:MM (obrigatório no Artia). date_at: AAAA-MM-DD
+    (padrão: hoje). status_id: situação da atividade registrada no apontamento
+    (ID de status com statusObject "Activity", ex.: "Não Iniciada", "Em Andamento");
+    o Artia recusa o apontamento sem ela.
     """
     return _run(
         ops.CREATE_TIME_ENTRY,
         accountId=_account(account_id),
         activityId=activity_id,
         dateAt=date_at or date.today().isoformat(),
-        duration=parse_duration(duration),
+        duration=round(parse_duration(duration) / 60, 4),
         startTime=start_time,
-        endTime=end_time,
+        timeEntryStatusId=status_id,
         observation=observation,
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=DELETE)
 def artia_delete_time_entry(time_entry_id: str, account_id: int | None = None) -> Any:
     """Exclui um apontamento de horas."""
     return _run(ops.DELETE_TIME_ENTRY, id=str(time_entry_id), accountId=_account(account_id))

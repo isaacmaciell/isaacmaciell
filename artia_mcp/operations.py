@@ -5,10 +5,10 @@ dos argumentos e campos retornados). O documento GraphQL é montado em tempo de
 execução apenas com os argumentos informados, para não enviar ``null`` em
 campos opcionais (o que em mutations de atualização poderia apagar dados).
 
-IMPORTANTE: nomes de operações, argumentos e campos seguem a documentação
-pública do Artia, mas ainda NÃO foram conferidos contra o schema real. Depois de
-rodar ``scripts/dump_schema.py``, execute ``scripts/validate_operations.py``:
-ele aponta qualquer divergência e basta ajustar este arquivo.
+Nomes de operações, argumentos, tipos e campos foram conferidos contra o
+schema real (``schema/artia_schema.json``). Se a API mudar, rode
+``scripts/dump_schema.py`` e depois ``scripts/validate_operations.py`` para
+apontar as divergências.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ mutation Authenticate($clientId: String!, $secret: String!) {
 
 PROJECT_FIELDS = """
 id
-number
+projectNumber
 name
 status
 lastInformations
@@ -96,7 +96,7 @@ class OperationSpec:
 LIST_PROJECTS = OperationSpec(
     "query",
     "listingProjects",
-    {"accountId": "Int!", "page": "Int", "status": "String"},
+    {"accountId": "Int!"},
     PROJECT_FIELDS,
     required=("accountId",),
 )
@@ -104,7 +104,7 @@ LIST_PROJECTS = OperationSpec(
 SHOW_PROJECT = OperationSpec(
     "query",
     "showProject",
-    {"id": "String!", "accountId": "Int!"},
+    {"id": "ID!", "accountId": "Int"},
     PROJECT_FIELDS,
     required=("id", "accountId"),
 )
@@ -113,7 +113,7 @@ SHOW_PROJECT = OperationSpec(
 LIST_ACTIVITIES = OperationSpec(
     "query",
     "listingActivities",
-    {"accountId": "Int!", "folderId": "Int!", "page": "Int", "status": "String"},
+    {"accountId": "Int", "folderId": "Int!"},
     ACTIVITY_FIELDS,
     required=("accountId", "folderId"),
 )
@@ -121,7 +121,7 @@ LIST_ACTIVITIES = OperationSpec(
 SHOW_ACTIVITY = OperationSpec(
     "query",
     "showActivity",
-    {"id": "String!", "accountId": "Int!", "folderId": "Int!"},
+    {"id": "ID!", "accountId": "Int", "folderId": "Int"},
     ACTIVITY_FIELDS,
     required=("id", "accountId", "folderId"),
 )
@@ -129,8 +129,8 @@ SHOW_ACTIVITY = OperationSpec(
 _ACTIVITY_INPUT = {
     "title": "String",
     "description": "String",
-    "estimatedStart": "String",
-    "estimatedEnd": "String",
+    "estimatedStart": "DateTime",
+    "estimatedEnd": "DateTime",
     "estimatedEffort": "Float",
     "responsibleId": "Int",
     "categoryText": "String",
@@ -140,7 +140,7 @@ _ACTIVITY_INPUT = {
 CREATE_ACTIVITY = OperationSpec(
     "mutation",
     "createActivity",
-    {"accountId": "Int!", "folderId": "Int!", **_ACTIVITY_INPUT, "title": "String!"},
+    {"accountId": "Int", "folderId": "Int!", **_ACTIVITY_INPUT, "title": "String!"},
     ACTIVITY_FIELDS,
     required=("accountId", "folderId", "title"),
 )
@@ -148,17 +148,58 @@ CREATE_ACTIVITY = OperationSpec(
 UPDATE_ACTIVITY = OperationSpec(
     "mutation",
     "updateActivity",
-    {"id": "String!", "accountId": "Int!", "folderId": "Int!", **_ACTIVITY_INPUT},
+    # O schema exige ``title`` também na atualização.
+    {"id": "ID!", "accountId": "Int", "folderId": "Int", **_ACTIVITY_INPUT, "title": "String!"},
     ACTIVITY_FIELDS,
-    required=("id", "accountId", "folderId"),
+    required=("id", "accountId", "folderId", "title"),
 )
 
 CHANGE_ACTIVITY_STATUS = OperationSpec(
     "mutation",
-    "changeStatusActivity",
-    {"id": "String!", "accountId": "Int!", "folderId": "Int!", "status": "Int!"},
+    "changeCustomStatusActivity",
+    {
+        "id": "ID!",
+        "accountId": "Int",
+        "folderId": "Int!",
+        "customStatusId": "Int",
+        "status": "Boolean",
+    },
     ACTIVITY_FIELDS,
-    required=("id", "accountId", "folderId", "status"),
+    required=("id", "accountId", "folderId"),
+)
+
+LIST_ACTIVITIES_V2 = OperationSpec(
+    "query",
+    "listingActivitiesV2",
+    {"accountId": "Int", "page": "Int", "filter": "ActivityFilterV2Input"},
+    """
+totalPages
+activities {
+  id
+  title
+  status
+  completedPercent
+  estimatedStart
+  estimatedEnd
+  folderId
+  parent { name }
+  customStatus { id statusName }
+}
+""",
+    required=("accountId",),
+)
+
+# ---------------------------------------------------------------- usuários
+LIST_ORGANIZATION_USERS = OperationSpec(
+    "query", "listingOrganizationUsers", {}, "\nuserId\nname\nemail\n"
+)
+
+# ------------------------------------------------- situações (custom status)
+LIST_CUSTOM_STATUSES = OperationSpec(
+    "query",
+    "listingCustomStatus",
+    {"accounts": "[Int!]", "statusObject": "String", "inactive": "Boolean"},
+    "\nid\nstatusName\nstatusObject\ninactive\nposition\n",
 )
 
 # --------------------------------------------------- apontamentos (time entries)
@@ -167,11 +208,9 @@ LIST_TIME_ENTRIES = OperationSpec(
     "listingTimeEntries",
     {
         "accountId": "Int!",
+        "folderId": "Int",
         "activityId": "Int",
-        "userId": "Int",
-        "startDate": "String",
-        "endDate": "String",
-        "page": "Int",
+        "onlyMine": "Boolean",
     },
     TIME_ENTRY_FIELDS,
     required=("accountId",),
@@ -183,20 +222,22 @@ CREATE_TIME_ENTRY = OperationSpec(
     {
         "accountId": "Int!",
         "activityId": "Int!",
-        "dateAt": "String!",
-        "duration": "Int!",
-        "startTime": "String",
-        "endTime": "String",
+        "dateAt": "DateTime!",
+        "startTime": "HoursTime!",
+        # Duração em horas decimais (0.25 = 15 min); conferido com a API real.
+        "duration": "Float!",
+        # Situação da atividade registrada no apontamento (ID de status de atividade).
+        "timeEntryStatusId": "Int",
         "observation": "String",
     },
     TIME_ENTRY_FIELDS,
-    required=("accountId", "activityId", "dateAt", "duration"),
+    required=("accountId", "activityId", "dateAt", "startTime", "duration", "timeEntryStatusId"),
 )
 
 DELETE_TIME_ENTRY = OperationSpec(
     "mutation",
     "destroyTimeEntry",
-    {"id": "String!", "accountId": "Int!"},
+    {"id": "ID!", "accountId": "Int!"},
     "\nid\n",
     required=("id", "accountId"),
 )
@@ -209,6 +250,9 @@ ALL_OPERATIONS: dict[str, OperationSpec] = {
     "CREATE_ACTIVITY": CREATE_ACTIVITY,
     "UPDATE_ACTIVITY": UPDATE_ACTIVITY,
     "CHANGE_ACTIVITY_STATUS": CHANGE_ACTIVITY_STATUS,
+    "LIST_ACTIVITIES_V2": LIST_ACTIVITIES_V2,
+    "LIST_ORGANIZATION_USERS": LIST_ORGANIZATION_USERS,
+    "LIST_CUSTOM_STATUSES": LIST_CUSTOM_STATUSES,
     "LIST_TIME_ENTRIES": LIST_TIME_ENTRIES,
     "CREATE_TIME_ENTRY": CREATE_TIME_ENTRY,
     "DELETE_TIME_ENTRY": DELETE_TIME_ENTRY,
