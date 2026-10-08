@@ -11,7 +11,7 @@ projetos, atividades e apontamentos de horas.
 | Ferramentas de projetos, atividades e apontamentos | ✅ Prontas e testadas com mocks |
 | Teste de autenticação real (`scripts/test_auth.py`) | ✅ OK (organização 94301, grupo 6595759) |
 | Download do schema (`scripts/dump_schema.py`) | ✅ Feito (introspecção não exige token); salvo em `schema/` |
-| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ✅ 11/11 operações válidas |
+| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ✅ 12/12 operações válidas |
 
 As operações em `artia_mcp/operations.py` foram conferidas contra o schema real e o teste
 `test_every_operation_matches_artia_schema` repete essa conferência a cada execução da suíte.
@@ -23,7 +23,7 @@ Projetos, atividades e apontamentos (criar e excluir) já foram exercitados com 
 - **Formatos**: `dateAt` = `AAAA-MM-DD`; `startTime`/`endTime` = `HH:MM` (24 h).
 - **`timeEntryStatusId` é obrigatório na prática**: sem ele o Artia responde "A situação especificada não foi
   encontrada no grupo de trabalho indicado". Use um ID de status de atividade
-  (`listingCustomStatus`, `statusObject: "Activity"`).
+  (ferramenta `artia_list_activity_statuses`).
 - **Atividades ficam em subpastas**: `listingActivities` no ID do projeto pode responder "Esse grupo de trabalho
   não possui atividades"; informe o `folderId` da pasta da atividade (`listingActivitiesV2` traz o `folderId`).
 - `listingOrganizations` responde "Autorização não encontrada" com token de integração; a organização pode ser
@@ -68,6 +68,7 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 | `artia_create_activity` | `createActivity` | escrita |
 | `artia_update_activity` | `updateActivity` | escrita |
 | `artia_change_activity_status` | `changeCustomStatusActivity` | escrita |
+| `artia_list_activity_statuses` | `listingCustomStatus` | leitura |
 | `artia_list_time_entries` | `listingTimeEntries` | leitura |
 | `artia_create_time_entry` | `createTimeEntry` | escrita |
 | `artia_delete_time_entry` | `destroyTimeEntry` | escrita |

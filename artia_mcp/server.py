@@ -26,8 +26,8 @@ Fluxo recomendado:
 Particularidades confirmadas na API real:
 - Apontamento: duration é enviada em horas decimais (0.25 = 15 min); a ferramenta
   aceita minutos ou "1:30" e converte. dateAt = AAAA-MM-DD; startTime = HH:MM.
-- Apontamento exige status_id (situação da atividade, ID de status com
-  statusObject "Activity"); sem ele o Artia recusa o registro.
+- Apontamento exige status_id (situação da atividade); obtenha os IDs com
+  artia_list_activity_statuses. Sem ele o Artia recusa o registro.
 - artia_graphql executa leituras direto; mutations só rodam com confirm=true.
 """
 
@@ -239,6 +239,24 @@ def artia_change_activity_status(
         customStatusId=custom_status_id,
         status=status,
     )
+
+
+@mcp.tool(annotations=READ)
+def artia_list_activity_statuses(
+    account_id: int | None = None, include_inactive: bool = False
+) -> Any:
+    """Lista as situações de atividade do grupo de trabalho, em ordem de exibição.
+
+    Use o ``id`` como ``status_id`` em artia_create_time_entry ou como
+    ``custom_status_id`` em artia_change_activity_status.
+    """
+    statuses = _run(
+        ops.LIST_CUSTOM_STATUSES,
+        accounts=[_account(account_id)],
+        statusObject="Activity",
+        inactive=None if include_inactive else False,
+    ) or []
+    return sorted(statuses, key=lambda s: s.get("position") or 0)
 
 
 # ---------------------------------------------------------------- apontamentos

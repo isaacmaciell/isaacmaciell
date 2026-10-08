@@ -221,3 +221,22 @@ def test_tools_declare_risk_annotations():
     assert tools["artia_create_time_entry"].annotations.destructive_hint is False
     assert tools["artia_delete_time_entry"].annotations.destructive_hint is True
     assert all(t.annotations is not None for t in tools.values())
+
+
+def test_list_activity_statuses_filters_activity_and_sorts(monkeypatch):
+    sent = {}
+
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        sent.update(body)
+        return httpx.Response(200, json={"data": {"listingCustomStatus": [
+            {"id": "2", "statusName": "Em Andamento", "position": 2},
+            {"id": "1", "statusName": "Não Iniciada", "position": 1},
+        ]}})
+
+    monkeypatch.setattr(server, "_client", make_client(handler))
+    result = server.artia_list_activity_statuses()
+    assert [s["id"] for s in result] == ["1", "2"]
+    assert sent["variables"] == {"accounts": [42], "statusObject": "Activity", "inactive": False}

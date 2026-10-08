@@ -168,6 +168,14 @@ CHANGE_ACTIVITY_STATUS = OperationSpec(
     required=("id", "accountId", "folderId"),
 )
 
+# ------------------------------------------------- situações (custom status)
+LIST_CUSTOM_STATUSES = OperationSpec(
+    "query",
+    "listingCustomStatus",
+    {"accounts": "[Int!]", "statusObject": "String", "inactive": "Boolean"},
+    "\nid\nstatusName\nstatusObject\ninactive\nposition\n",
+)
+
 # --------------------------------------------------- apontamentos (time entries)
 LIST_TIME_ENTRIES = OperationSpec(
     "query",
@@ -216,6 +224,7 @@ ALL_OPERATIONS: dict[str, OperationSpec] = {
     "CREATE_ACTIVITY": CREATE_ACTIVITY,
     "UPDATE_ACTIVITY": UPDATE_ACTIVITY,
     "CHANGE_ACTIVITY_STATUS": CHANGE_ACTIVITY_STATUS,
+    "LIST_CUSTOM_STATUSES": LIST_CUSTOM_STATUSES,
     "LIST_TIME_ENTRIES": LIST_TIME_ENTRIES,
     "CREATE_TIME_ENTRY": CREATE_TIME_ENTRY,
     "DELETE_TIME_ENTRY": DELETE_TIME_ENTRY,
