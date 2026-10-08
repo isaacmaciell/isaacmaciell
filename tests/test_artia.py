@@ -159,3 +159,65 @@ SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schema" / "artia_schema.jso
 def test_every_operation_matches_artia_schema(name, spec):
     schema = build_client_schema(json.loads(SCHEMA_PATH.read_text()))
     assert validate(schema, parse(spec.document(spec.arg_types))) == []
+
+
+def test_graphql_tool_runs_queries_without_confirmation(monkeypatch):
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        return httpx.Response(200, json={"data": {"listingProjects": []}})
+
+    monkeypatch.setattr(server, "_client", make_client(handler))
+    assert server.artia_graphql("query { listingProjects(accountId: 1) { id } }") == {"listingProjects": []}
+
+
+def test_graphql_tool_holds_mutations_until_confirmed(monkeypatch):
+    sent = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        sent.append(body["query"])
+        return httpx.Response(200, json={"data": {"destroyTimeEntry": {"id": "5"}}})
+
+    monkeypatch.setattr(server, "_client", make_client(handler))
+    query = 'mutation { destroyTimeEntry(accountId: 1, id: "5") { id } }'
+    preview = server.artia_graphql(query)
+    assert preview["executed"] is False
+    assert preview["destructive"] == ["destroyTimeEntry"]
+    assert sent == []
+    assert server.artia_graphql(query, confirm=True) == {"destroyTimeEntry": {"id": "5"}}
+    assert len(sent) == 1
+
+
+def test_graphql_tool_rejects_invalid_syntax():
+    with pytest.raises(ValueError, match="GraphQL inválido"):
+        server.artia_graphql("mutation {")
+
+
+def test_test_connection_confirms_organization_and_account(monkeypatch):
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        if "listingFolderTypes" in body["query"]:
+            return httpx.Response(200, json={"data": {"listingFolderTypes": [{"organizationId": 94301}]}})
+        return httpx.Response(200, json={"data": {"showFolder": {"id": "42", "name": "Grupo"}}})
+
+    client = make_client(handler)
+    client.config.organization_id = "94301"
+    monkeypatch.setattr(server, "_client", client)
+    result = server.artia_test_connection()
+    assert result["ok"] is True
+    assert result["organization"] == {"configured": "94301", "confirmed": True}
+    assert result["account"] == {"id": "42", "name": "Grupo"}
+
+
+def test_tools_declare_risk_annotations():
+    tools = {t.name: t for t in server.mcp._tool_manager.list_tools()}
+    assert tools["artia_list_projects"].annotations.read_only_hint is True
+    assert tools["artia_create_time_entry"].annotations.destructive_hint is False
+    assert tools["artia_delete_time_entry"].annotations.destructive_hint is True
+    assert all(t.annotations is not None for t in tools.values())

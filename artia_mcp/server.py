@@ -6,12 +6,36 @@ import json
 from datetime import date
 from typing import Any
 
+from graphql import GraphQLError, OperationDefinitionNode, parse
 from mcp.server.mcpserver import MCPServer
+from mcp.types import ToolAnnotations
 
 from . import operations as ops
 from .client import ArtiaClient, ArtiaConfig, ArtiaError
 
-mcp = MCPServer("artia")
+INSTRUCTIONS = """\
+Servidor do Artia (projetos, atividades e apontamentos de horas).
+
+Fluxo recomendado:
+1. artia_test_connection para confirmar organização e grupo de trabalho.
+2. artia_list_projects para achar o projeto; as atividades ficam em subpastas,
+   então use o folderId da pasta da atividade (artia_list_activities no ID do
+   projeto pode responder "Esse grupo de trabalho não possui atividades").
+3. Antes de criar, alterar ou excluir, confirme com o usuário o que será gravado.
+
+Particularidades confirmadas na API real:
+- Apontamento: duration é enviada em horas decimais (0.25 = 15 min); a ferramenta
+  aceita minutos ou "1:30" e converte. dateAt = AAAA-MM-DD; startTime = HH:MM.
+- Apontamento exige status_id (situação da atividade, ID de status com
+  statusObject "Activity"); sem ele o Artia recusa o registro.
+- artia_graphql executa leituras direto; mutations só rodam com confirm=true.
+"""
+
+READ = ToolAnnotations(read_only_hint=True, open_world_hint=True)
+WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, open_world_hint=True)
+DELETE = ToolAnnotations(read_only_hint=False, destructive_hint=True, open_world_hint=True)
+
+mcp = MCPServer("artia", instructions=INSTRUCTIONS)
 _client: ArtiaClient | None = None
 
 
@@ -33,43 +57,95 @@ def _account(account_id: int | None) -> int:
 
 
 # ------------------------------------------------------------------ diagnóstico
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_test_connection() -> dict[str, Any]:
-    """Testa a autenticação no Artia e retorna o status da conexão."""
+    """Testa a autenticação e confirma a organização e o grupo de trabalho configurados."""
+    client = get_client()
     try:
-        get_client().authenticate(force=True)
-        return {"ok": True, "message": "Autenticado com sucesso no Artia."}
+        client.authenticate(force=True)
     except ArtiaError as exc:
         return {"ok": False, "message": str(exc)}
+    result: dict[str, Any] = {"ok": True, "message": "Autenticado com sucesso no Artia."}
+    try:
+        # listingOrganizations é recusada para token de integração; o organizationId
+        # dos tipos de pasta confirma a organização do token.
+        types = client.execute("{ listingFolderTypes(fetchAll: true) { organizationId } }")
+        org_ids = {t.get("organizationId") for t in types.get("listingFolderTypes") or []}
+        configured = str(client.config.organization_id)
+        result["organization"] = {
+            "configured": configured,
+            "confirmed": org_ids == {int(configured)} if configured.isdigit() else False,
+        }
+        if client.config.account_id is not None:
+            folder = client.execute(
+                "query($id: ID!) { showFolder(id: $id) { id name } }",
+                {"id": str(client.config.account_id)},
+            )
+            result["account"] = folder.get("showFolder")
+    except ArtiaError as exc:
+        result["warning"] = f"Autenticado, mas não foi possível confirmar organização/grupo: {exc}"
+    return result
 
 
-@mcp.tool()
-def artia_graphql(query: str, variables: dict[str, Any] | None = None) -> Any:
-    """Executa uma query/mutation GraphQL arbitrária no Artia (uso avançado)."""
+def _mutation_fields(query: str) -> list[str]:
+    """Campos raiz das mutations do documento (vazio se só houver queries)."""
+    try:
+        document = parse(query)
+    except GraphQLError as exc:
+        raise ValueError(f"GraphQL inválido: {exc.message}") from exc
+    return [
+        selection.name.value
+        for definition in document.definitions
+        if isinstance(definition, OperationDefinitionNode) and definition.operation.value == "mutation"
+        for selection in definition.selection_set.selections
+        if hasattr(selection, "name")
+    ]
+
+
+@mcp.tool(annotations=DELETE)
+def artia_graphql(
+    query: str, variables: dict[str, Any] | None = None, confirm: bool = False
+) -> Any:
+    """Executa uma query/mutation GraphQL arbitrária no Artia (uso avançado).
+
+    Queries rodam direto. Mutations só rodam com confirm=true; sem isso a
+    ferramenta devolve as operações que seriam executadas, para confirmar com
+    o usuário antes (atenção a destroy*, que apaga dados em definitivo).
+    """
+    mutations = _mutation_fields(query)
+    if mutations and not confirm:
+        return {
+            "executed": False,
+            "requires_confirmation": True,
+            "mutations": mutations,
+            "destructive": [m for m in mutations if m.startswith("destroy")],
+            "variables": variables or {},
+            "message": "Confirme com o usuário e chame de novo com confirm=true.",
+        }
     return get_client().execute(query, variables or {})
 
 
 # --------------------------------------------------------------------- projetos
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_list_projects(account_id: int | None = None) -> Any:
     """Lista os projetos de um grupo de trabalho (accountId)."""
     return _run(ops.LIST_PROJECTS, accountId=_account(account_id))
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_get_project(project_id: str, account_id: int | None = None) -> Any:
     """Retorna os detalhes de um projeto."""
     return _run(ops.SHOW_PROJECT, id=str(project_id), accountId=_account(account_id))
 
 
 # ------------------------------------------------------------------- atividades
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_list_activities(folder_id: int, account_id: int | None = None) -> Any:
     """Lista as atividades de uma pasta/projeto (folderId) do Artia."""
     return _run(ops.LIST_ACTIVITIES, accountId=_account(account_id), folderId=folder_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_get_activity(activity_id: str, folder_id: int, account_id: int | None = None) -> Any:
     """Retorna os detalhes de uma atividade."""
     return _run(
@@ -77,7 +153,7 @@ def artia_get_activity(activity_id: str, folder_id: int, account_id: int | None 
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_create_activity(
     folder_id: int,
     title: str,
@@ -106,7 +182,7 @@ def artia_create_activity(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_update_activity(
     activity_id: str,
     folder_id: int,
@@ -140,7 +216,7 @@ def artia_update_activity(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_change_activity_status(
     activity_id: str,
     folder_id: int,
@@ -182,7 +258,7 @@ def parse_duration(value: str | int) -> int:
     return minutes
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ)
 def artia_list_time_entries(
     account_id: int | None = None,
     folder_id: int | None = None,
@@ -199,7 +275,7 @@ def artia_list_time_entries(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITE)
 def artia_create_time_entry(
     activity_id: int,
     duration: str,
@@ -229,7 +305,7 @@ def artia_create_time_entry(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=DELETE)
 def artia_delete_time_entry(time_entry_id: str, account_id: int | None = None) -> Any:
     """Exclui um apontamento de horas."""
     return _run(ops.DELETE_TIME_ENTRY, id=str(time_entry_id), accountId=_account(account_id))
