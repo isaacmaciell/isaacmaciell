@@ -204,22 +204,27 @@ def artia_create_time_entry(
     activity_id: int,
     duration: str,
     start_time: str,
+    status_id: int,
     date_at: str | None = None,
     account_id: int | None = None,
     observation: str | None = None,
 ) -> Any:
     """Registra um apontamento de horas em uma atividade.
 
-    duration: minutos ("90") ou horas ("1:30", "1h30"). start_time: HH:MM
-    (obrigatório no Artia). date_at: AAAA-MM-DD (padrão: hoje).
+    duration: minutos ("90") ou horas ("1:30", "1h30"); é enviada ao Artia em
+    horas decimais. start_time: HH:MM (obrigatório no Artia). date_at: AAAA-MM-DD
+    (padrão: hoje). status_id: situação da atividade registrada no apontamento
+    (ID de status com statusObject "Activity", ex.: "Não Iniciada", "Em Andamento");
+    o Artia recusa o apontamento sem ela.
     """
     return _run(
         ops.CREATE_TIME_ENTRY,
         accountId=_account(account_id),
         activityId=activity_id,
         dateAt=date_at or date.today().isoformat(),
-        duration=parse_duration(duration),
+        duration=round(parse_duration(duration) / 60, 4),
         startTime=start_time,
+        timeEntryStatusId=status_id,
         observation=observation,
     )
 

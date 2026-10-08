@@ -132,12 +132,13 @@ def test_create_time_entry_tool(monkeypatch):
 
     monkeypatch.setattr(server, "_client", make_client(handler))
     result = server.artia_create_time_entry(
-        activity_id=10, duration="1:15", start_time="09:00", date_at="2026-10-08", observation="Reunião"
+        activity_id=10, duration="1:15", start_time="09:00", status_id=7, date_at="2026-10-08",
+        observation="Reunião",
     )
     assert result == {"id": "99"}
     assert sent["variables"] == {
-        "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "startTime": "09:00", "duration": 75,
-        "observation": "Reunião",
+        "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "startTime": "09:00", "duration": 1.25,
+        "timeEntryStatusId": 7, "observation": "Reunião",
     }
     assert "createTimeEntry(" in sent["query"]
 

@@ -9,13 +9,25 @@ projetos, atividades e apontamentos de horas.
 |---|---|
 | Cliente GraphQL (auth, cache e renovação de token) | ✅ Pronto e testado com mocks |
 | Ferramentas de projetos, atividades e apontamentos | ✅ Prontas e testadas com mocks |
-| Teste de autenticação real (`scripts/test_auth.py`) | ⏳ Pendente: credenciais reais (as do ambiente retornam "Token não registrado") |
+| Teste de autenticação real (`scripts/test_auth.py`) | ✅ OK (organização 94301, grupo 6595759) |
 | Download do schema (`scripts/dump_schema.py`) | ✅ Feito (introspecção não exige token); salvo em `schema/` |
 | Conferência das operações com o schema real (`scripts/validate_operations.py`) | ✅ 11/11 operações válidas |
 
 As operações em `artia_mcp/operations.py` foram conferidas contra o schema real e o teste
 `test_every_operation_matches_artia_schema` repete essa conferência a cada execução da suíte.
-Ainda não foram exercitadas com dados reais (depende da autenticação).
+Projetos, atividades e apontamentos (criar e excluir) já foram exercitados com dados reais.
+
+### Comportamentos confirmados na API real
+
+- **`duration` é em horas decimais**: `0.25` = 15 min (08:00 → 08:15). A ferramenta converte a entrada para horas.
+- **Formatos**: `dateAt` = `AAAA-MM-DD`; `startTime`/`endTime` = `HH:MM` (24 h).
+- **`timeEntryStatusId` é obrigatório na prática**: sem ele o Artia responde "A situação especificada não foi
+  encontrada no grupo de trabalho indicado". Use um ID de status de atividade
+  (`listingCustomStatus`, `statusObject: "Activity"`).
+- **Atividades ficam em subpastas**: `listingActivities` no ID do projeto pode responder "Esse grupo de trabalho
+  não possui atividades"; informe o `folderId` da pasta da atividade (`listingActivitiesV2` traz o `folderId`).
+- `listingOrganizations` responde "Autorização não encontrada" com token de integração; a organização pode ser
+  conferida pelo `organizationId` de `listingFolderTypes`.
 
 ## Configuração
 
@@ -60,8 +72,9 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 | `artia_create_time_entry` | `createTimeEntry` | escrita |
 | `artia_delete_time_entry` | `destroyTimeEntry` | escrita |
 
-`artia_create_time_entry` aceita a duração em minutos (`90`) ou horas (`1:30`, `1h30`), exige `start_time`
-(HH:MM, obrigatório no Artia) e usa a data de hoje quando `date_at` não é informado. `artia_update_activity`
+`artia_create_time_entry` aceita a duração em minutos (`90`) ou horas (`1:30`, `1h30`) e a envia ao Artia em
+horas decimais; exige `start_time` (HH:MM) e `status_id` (situação da atividade) e usa a data de hoje quando
+`date_at` não é informado. `artia_update_activity`
 exige `title`, pois o Artia o pede em toda atualização. As ferramentas de atualização enviam apenas os campos informados.
 
 ## Uso no Claude Code

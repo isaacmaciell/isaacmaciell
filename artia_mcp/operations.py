@@ -190,11 +190,14 @@ CREATE_TIME_ENTRY = OperationSpec(
         "activityId": "Int!",
         "dateAt": "DateTime!",
         "startTime": "HoursTime!",
+        # Duração em horas decimais (0.25 = 15 min); conferido com a API real.
         "duration": "Float!",
+        # Situação da atividade registrada no apontamento (ID de status de atividade).
+        "timeEntryStatusId": "Int",
         "observation": "String",
     },
     TIME_ENTRY_FIELDS,
-    required=("accountId", "activityId", "dateAt", "startTime", "duration"),
+    required=("accountId", "activityId", "dateAt", "startTime", "duration", "timeEntryStatusId"),
 )
 
 DELETE_TIME_ENTRY = OperationSpec(
