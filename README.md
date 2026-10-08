@@ -9,12 +9,13 @@ projetos, atividades e apontamentos de horas.
 |---|---|
 | Cliente GraphQL (auth, cache e renovação de token) | ✅ Pronto e testado com mocks |
 | Ferramentas de projetos, atividades e apontamentos | ✅ Prontas e testadas com mocks |
-| Teste de autenticação real (`scripts/test_auth.py`) | ⏳ Pendente: credenciais e acesso de rede |
-| Download do schema (`scripts/dump_schema.py`) | ⏳ Pendente: credenciais e acesso de rede |
-| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ⏳ Pendente: depende do schema |
+| Teste de autenticação real (`scripts/test_auth.py`) | ⏳ Pendente: credenciais reais (as do ambiente retornam "Token não registrado") |
+| Download do schema (`scripts/dump_schema.py`) | ✅ Feito (introspecção não exige token); salvo em `schema/` |
+| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ✅ 11/11 operações válidas |
 
-Os nomes de operações e campos em `artia_mcp/operations.py` seguem a documentação pública do Artia,
-mas **ainda não foram conferidos contra o schema real**. O passo 3 abaixo aponta exatamente o que ajustar.
+As operações em `artia_mcp/operations.py` foram conferidas contra o schema real e o teste
+`test_every_operation_matches_artia_schema` repete essa conferência a cada execução da suíte.
+Ainda não foram exercitadas com dados reais (depende da autenticação).
 
 ## Configuração
 
@@ -54,13 +55,14 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 | `artia_get_activity` | `showActivity` | leitura |
 | `artia_create_activity` | `createActivity` | escrita |
 | `artia_update_activity` | `updateActivity` | escrita |
-| `artia_change_activity_status` | `changeStatusActivity` | escrita |
+| `artia_change_activity_status` | `changeCustomStatusActivity` | escrita |
 | `artia_list_time_entries` | `listingTimeEntries` | leitura |
 | `artia_create_time_entry` | `createTimeEntry` | escrita |
 | `artia_delete_time_entry` | `destroyTimeEntry` | escrita |
 
-`artia_create_time_entry` aceita a duração em minutos (`90`) ou horas (`1:30`, `1h30`) e usa a data de hoje
-quando `date_at` não é informado. As ferramentas de atualização enviam apenas os campos informados.
+`artia_create_time_entry` aceita a duração em minutos (`90`) ou horas (`1:30`, `1h30`), exige `start_time`
+(HH:MM, obrigatório no Artia) e usa a data de hoje quando `date_at` não é informado. `artia_update_activity`
+exige `title`, pois o Artia o pede em toda atualização. As ferramentas de atualização enviam apenas os campos informados.
 
 ## Uso no Claude Code
 

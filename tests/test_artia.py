@@ -1,8 +1,9 @@
 import json
+from pathlib import Path
 
 import httpx
 import pytest
-from graphql import parse
+from graphql import build_client_schema, parse, validate
 
 from artia_mcp import operations as ops
 from artia_mcp import server
@@ -130,10 +131,13 @@ def test_create_time_entry_tool(monkeypatch):
         return httpx.Response(200, json={"data": {"createTimeEntry": {"id": "99"}}})
 
     monkeypatch.setattr(server, "_client", make_client(handler))
-    result = server.artia_create_time_entry(activity_id=10, duration="1:15", date_at="2026-10-08", observation="Reunião")
+    result = server.artia_create_time_entry(
+        activity_id=10, duration="1:15", start_time="09:00", date_at="2026-10-08", observation="Reunião"
+    )
     assert result == {"id": "99"}
     assert sent["variables"] == {
-        "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "duration": 75, "observation": "Reunião",
+        "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "startTime": "09:00", "duration": 75,
+        "observation": "Reunião",
     }
     assert "createTimeEntry(" in sent["query"]
 
@@ -144,3 +148,13 @@ def test_list_projects_requires_account(monkeypatch):
     monkeypatch.setattr(server, "_client", client)
     with pytest.raises(ArtiaError, match="account_id"):
         server.artia_list_projects()
+
+
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schema" / "artia_schema.json"
+
+
+@pytest.mark.skipif(not SCHEMA_PATH.exists(), reason="schema do Artia não baixado")
+@pytest.mark.parametrize("name,spec", ops.ALL_OPERATIONS.items())
+def test_every_operation_matches_artia_schema(name, spec):
+    schema = build_client_schema(json.loads(SCHEMA_PATH.read_text()))
+    assert validate(schema, parse(spec.document(spec.arg_types))) == []

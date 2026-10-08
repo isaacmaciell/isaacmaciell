@@ -51,11 +51,9 @@ def artia_graphql(query: str, variables: dict[str, Any] | None = None) -> Any:
 
 # --------------------------------------------------------------------- projetos
 @mcp.tool()
-def artia_list_projects(
-    account_id: int | None = None, page: int | None = None, status: str | None = None
-) -> Any:
+def artia_list_projects(account_id: int | None = None) -> Any:
     """Lista os projetos de um grupo de trabalho (accountId)."""
-    return _run(ops.LIST_PROJECTS, accountId=_account(account_id), page=page, status=status)
+    return _run(ops.LIST_PROJECTS, accountId=_account(account_id))
 
 
 @mcp.tool()
@@ -66,20 +64,9 @@ def artia_get_project(project_id: str, account_id: int | None = None) -> Any:
 
 # ------------------------------------------------------------------- atividades
 @mcp.tool()
-def artia_list_activities(
-    folder_id: int,
-    account_id: int | None = None,
-    page: int | None = None,
-    status: str | None = None,
-) -> Any:
+def artia_list_activities(folder_id: int, account_id: int | None = None) -> Any:
     """Lista as atividades de uma pasta/projeto (folderId) do Artia."""
-    return _run(
-        ops.LIST_ACTIVITIES,
-        accountId=_account(account_id),
-        folderId=folder_id,
-        page=page,
-        status=status,
-    )
+    return _run(ops.LIST_ACTIVITIES, accountId=_account(account_id), folderId=folder_id)
 
 
 @mcp.tool()
@@ -123,8 +110,8 @@ def artia_create_activity(
 def artia_update_activity(
     activity_id: str,
     folder_id: int,
+    title: str,
     account_id: int | None = None,
-    title: str | None = None,
     description: str | None = None,
     estimated_start: str | None = None,
     estimated_end: str | None = None,
@@ -133,7 +120,10 @@ def artia_update_activity(
     category: str | None = None,
     priority: int | None = None,
 ) -> Any:
-    """Atualiza campos de uma atividade. Só os campos informados são enviados."""
+    """Atualiza campos de uma atividade. Só os campos informados são enviados.
+
+    O Artia exige o título em toda atualização (repita o atual se não mudar).
+    """
     return _run(
         ops.UPDATE_ACTIVITY,
         id=str(activity_id),
@@ -152,14 +142,25 @@ def artia_update_activity(
 
 @mcp.tool()
 def artia_change_activity_status(
-    activity_id: str, folder_id: int, status: int, account_id: int | None = None
+    activity_id: str,
+    folder_id: int,
+    custom_status_id: int | None = None,
+    status: bool | None = None,
+    account_id: int | None = None,
 ) -> Any:
-    """Altera o status de uma atividade (código numérico de status do Artia)."""
+    """Altera o status de uma atividade.
+
+    custom_status_id: ID do status personalizado da organização.
+    status: status booleano da atividade (campo ``status`` do Artia).
+    """
+    if custom_status_id is None and status is None:
+        raise ValueError("Informe custom_status_id e/ou status.")
     return _run(
         ops.CHANGE_ACTIVITY_STATUS,
         id=str(activity_id),
         accountId=_account(account_id),
         folderId=folder_id,
+        customStatusId=custom_status_id,
         status=status,
     )
 
@@ -184,21 +185,17 @@ def parse_duration(value: str | int) -> int:
 @mcp.tool()
 def artia_list_time_entries(
     account_id: int | None = None,
+    folder_id: int | None = None,
     activity_id: int | None = None,
-    user_id: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    page: int | None = None,
+    only_mine: bool | None = None,
 ) -> Any:
-    """Lista apontamentos de horas, com filtros opcionais (datas AAAA-MM-DD)."""
+    """Lista apontamentos de horas, com filtros opcionais por pasta, atividade ou só os meus."""
     return _run(
         ops.LIST_TIME_ENTRIES,
         accountId=_account(account_id),
+        folderId=folder_id,
         activityId=activity_id,
-        userId=user_id,
-        startDate=start_date,
-        endDate=end_date,
-        page=page,
+        onlyMine=only_mine,
     )
 
 
@@ -206,16 +203,15 @@ def artia_list_time_entries(
 def artia_create_time_entry(
     activity_id: int,
     duration: str,
+    start_time: str,
     date_at: str | None = None,
     account_id: int | None = None,
-    start_time: str | None = None,
-    end_time: str | None = None,
     observation: str | None = None,
 ) -> Any:
     """Registra um apontamento de horas em uma atividade.
 
-    duration: minutos ("90") ou horas ("1:30", "1h30"). date_at: AAAA-MM-DD
-    (padrão: hoje). start_time/end_time: HH:MM, opcionais.
+    duration: minutos ("90") ou horas ("1:30", "1h30"). start_time: HH:MM
+    (obrigatório no Artia). date_at: AAAA-MM-DD (padrão: hoje).
     """
     return _run(
         ops.CREATE_TIME_ENTRY,
@@ -224,7 +220,6 @@ def artia_create_time_entry(
         dateAt=date_at or date.today().isoformat(),
         duration=parse_duration(duration),
         startTime=start_time,
-        endTime=end_time,
         observation=observation,
     )
 
