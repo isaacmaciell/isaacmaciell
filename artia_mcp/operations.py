@@ -168,6 +168,32 @@ CHANGE_ACTIVITY_STATUS = OperationSpec(
     required=("id", "accountId", "folderId"),
 )
 
+LIST_ACTIVITIES_V2 = OperationSpec(
+    "query",
+    "listingActivitiesV2",
+    {"accountId": "Int", "page": "Int", "filter": "ActivityFilterV2Input"},
+    """
+totalPages
+activities {
+  id
+  title
+  status
+  completedPercent
+  estimatedStart
+  estimatedEnd
+  folderId
+  parent { name }
+  customStatus { id statusName }
+}
+""",
+    required=("accountId",),
+)
+
+# ---------------------------------------------------------------- usuários
+LIST_ORGANIZATION_USERS = OperationSpec(
+    "query", "listingOrganizationUsers", {}, "\nuserId\nname\nemail\n"
+)
+
 # ------------------------------------------------- situações (custom status)
 LIST_CUSTOM_STATUSES = OperationSpec(
     "query",
@@ -224,6 +250,8 @@ ALL_OPERATIONS: dict[str, OperationSpec] = {
     "CREATE_ACTIVITY": CREATE_ACTIVITY,
     "UPDATE_ACTIVITY": UPDATE_ACTIVITY,
     "CHANGE_ACTIVITY_STATUS": CHANGE_ACTIVITY_STATUS,
+    "LIST_ACTIVITIES_V2": LIST_ACTIVITIES_V2,
+    "LIST_ORGANIZATION_USERS": LIST_ORGANIZATION_USERS,
     "LIST_CUSTOM_STATUSES": LIST_CUSTOM_STATUSES,
     "LIST_TIME_ENTRIES": LIST_TIME_ENTRIES,
     "CREATE_TIME_ENTRY": CREATE_TIME_ENTRY,

@@ -11,7 +11,7 @@ projetos, atividades e apontamentos de horas.
 | Ferramentas de projetos, atividades e apontamentos | ✅ Prontas e testadas com mocks |
 | Teste de autenticação real (`scripts/test_auth.py`) | ✅ OK (organização 94301, grupo 6595759) |
 | Download do schema (`scripts/dump_schema.py`) | ✅ Feito (introspecção não exige token); salvo em `schema/` |
-| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ✅ 12/12 operações válidas |
+| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ✅ 14/14 operações válidas |
 
 As operações em `artia_mcp/operations.py` foram conferidas contra o schema real e o teste
 `test_every_operation_matches_artia_schema` repete essa conferência a cada execução da suíte.
@@ -42,6 +42,7 @@ cp .env.example .env   # preencha e exporte as variáveis
 | `ARTIA_CLIENT_SECRET` | sim | Secret da integração |
 | `ARTIA_ORGANIZATION_ID` | sim | ID da organização (cabeçalho `OrganizationId`) |
 | `ARTIA_ACCOUNT_ID` | não | Grupo de trabalho padrão (`accountId`) das ferramentas |
+| `ARTIA_USER_EMAIL` | não | Seu e-mail no Artia, usado por `artia_list_my_open_activities` |
 | `ARTIA_API_URL` | não | Padrão `https://app.artia.com/graphql` |
 
 ## Validação em 3 passos
@@ -65,6 +66,7 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 | `artia_get_project` | `showProject` | leitura |
 | `artia_list_activities` | `listingActivities` | leitura |
 | `artia_get_activity` | `showActivity` | leitura |
+| `artia_list_my_open_activities` | `listingOrganizationUsers` + `listingActivitiesV2` | leitura |
 | `artia_create_activity` | `createActivity` | escrita |
 | `artia_update_activity` | `updateActivity` | escrita |
 | `artia_change_activity_status` | `changeCustomStatusActivity` | escrita |
@@ -88,11 +90,13 @@ desse ambiente** (`<VENV>`), por exemplo `/home/voce/artia/.venv/bin/python` ou
 
 ```bash
 # Exporte as credenciais no shell (ou carregue do .env) antes de registrar
-export ARTIA_CLIENT_ID=... ARTIA_CLIENT_SECRET=... ARTIA_ORGANIZATION_ID=94301 ARTIA_ACCOUNT_ID=6595759
+export ARTIA_CLIENT_ID=... ARTIA_CLIENT_SECRET=... ARTIA_ORGANIZATION_ID=94301 ARTIA_ACCOUNT_ID=6595759 \
+  ARTIA_USER_EMAIL=voce@empresa.com.br
 
 claude mcp add artia --scope user \
   -e ARTIA_CLIENT_ID="$ARTIA_CLIENT_ID" -e ARTIA_CLIENT_SECRET="$ARTIA_CLIENT_SECRET" \
   -e ARTIA_ORGANIZATION_ID="$ARTIA_ORGANIZATION_ID" -e ARTIA_ACCOUNT_ID="$ARTIA_ACCOUNT_ID" \
+  -e ARTIA_USER_EMAIL="$ARTIA_USER_EMAIL" \
   -- <VENV> -m artia_mcp.server
 ```
 
@@ -116,7 +120,8 @@ ambiente de cada pessoa. Como o caminho do ambiente virtual muda de pessoa para 
         "ARTIA_CLIENT_ID": "${ARTIA_CLIENT_ID}",
         "ARTIA_CLIENT_SECRET": "${ARTIA_CLIENT_SECRET}",
         "ARTIA_ORGANIZATION_ID": "${ARTIA_ORGANIZATION_ID}",
-        "ARTIA_ACCOUNT_ID": "${ARTIA_ACCOUNT_ID}"
+        "ARTIA_ACCOUNT_ID": "${ARTIA_ACCOUNT_ID}",
+        "ARTIA_USER_EMAIL": "${ARTIA_USER_EMAIL}"
       }
     }
   }
@@ -144,7 +149,8 @@ Edite o arquivo de configuração (Configurações > Desenvolvedor > Editar conf
         "ARTIA_CLIENT_ID": "...",
         "ARTIA_CLIENT_SECRET": "...",
         "ARTIA_ORGANIZATION_ID": "94301",
-        "ARTIA_ACCOUNT_ID": "6595759"
+        "ARTIA_ACCOUNT_ID": "6595759",
+        "ARTIA_USER_EMAIL": "voce@empresa.com.br"
       }
     }
   }

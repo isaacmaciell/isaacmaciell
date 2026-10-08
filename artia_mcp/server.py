@@ -18,6 +18,7 @@ Servidor do Artia (projetos, atividades e apontamentos de horas).
 
 Fluxo recomendado:
 1. artia_test_connection para confirmar organização e grupo de trabalho.
+   Para registrar horas, artia_list_my_open_activities mostra onde apontar.
 2. artia_list_projects para achar o projeto; as atividades ficam em subpastas,
    então use o folderId da pasta da atividade (artia_list_activities no ID do
    projeto pode responder "Esse grupo de trabalho não possui atividades").
@@ -239,6 +240,63 @@ def artia_change_activity_status(
         customStatusId=custom_status_id,
         status=status,
     )
+
+
+# Proteção contra paginação sem fim caso a API não informe totalPages.
+MAX_PAGES = 20
+
+
+def _resolve_user_id(email: str | None) -> int:
+    email = email or get_client().config.user_email
+    if not email:
+        raise ArtiaError("Informe email ou defina ARTIA_USER_EMAIL (e-mail do seu usuário no Artia).")
+    users = _run(ops.LIST_ORGANIZATION_USERS) or []
+    for user in users:
+        if (user.get("email") or "").strip().lower() == email.strip().lower():
+            return int(user["userId"])
+    raise ArtiaError(f"Nenhum usuário do Artia com o e-mail {email}.")
+
+
+@mcp.tool(annotations=READ)
+def artia_list_my_open_activities(
+    email: str | None = None, account_id: int | None = None
+) -> list[dict[str, Any]]:
+    """Lista as atividades em aberto (não encerradas) em que você é responsável.
+
+    email: seu e-mail no Artia (padrão: ARTIA_USER_EMAIL). Retorna id, título,
+    pasta (folder_id/folder) e situação, ordenadas pelo término previsto; use
+    id e folder_id em artia_create_time_entry e nas ferramentas de atividade.
+    """
+    user_id = _resolve_user_id(email)
+    account = _account(account_id)
+    activities: list[dict[str, Any]] = []
+    page = 1
+    while page <= MAX_PAGES:
+        data = _run(
+            ops.LIST_ACTIVITIES_V2,
+            accountId=account,
+            page=page,
+            filter={"responsibleUserIds": [user_id]},
+        ) or {}
+        activities.extend(data.get("activities") or [])
+        if page >= (data.get("totalPages") or 1):
+            break
+        page += 1
+    open_activities = [
+        {
+            "id": a.get("id"),
+            "title": a.get("title"),
+            "folder_id": a.get("folderId"),
+            "folder": (a.get("parent") or {}).get("name"),
+            "status": (a.get("customStatus") or {}).get("statusName"),
+            "completed_percent": a.get("completedPercent"),
+            "estimated_start": a.get("estimatedStart"),
+            "estimated_end": a.get("estimatedEnd"),
+        }
+        for a in activities
+        if not a.get("status")  # status true = atividade encerrada
+    ]
+    return sorted(open_activities, key=lambda a: (a["estimated_end"] is None, a["estimated_end"] or ""))
 
 
 @mcp.tool(annotations=READ)

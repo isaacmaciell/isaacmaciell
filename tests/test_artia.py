@@ -240,3 +240,47 @@ def test_list_activity_statuses_filters_activity_and_sorts(monkeypatch):
     result = server.artia_list_activity_statuses()
     assert [s["id"] for s in result] == ["1", "2"]
     assert sent["variables"] == {"accounts": [42], "statusObject": "Activity", "inactive": False}
+
+
+def test_list_my_open_activities_paginates_and_filters(monkeypatch):
+    pages = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        if "listingOrganizationUsers" in body["query"]:
+            return httpx.Response(200, json={"data": {"listingOrganizationUsers": [
+                {"userId": 7, "name": "Outra", "email": "outra@x.com"},
+                {"userId": 9, "name": "Eu", "email": "Eu@X.com"},
+            ]}})
+        variables = body["variables"]
+        pages.append(variables)
+        acts = {
+            1: [{"id": "1", "title": "Encerrada", "status": True, "estimatedEnd": "2026-01-01"},
+                {"id": "2", "title": "Depois", "status": False, "estimatedEnd": "2026-12-01", "folderId": 5,
+                 "parent": {"name": "Pasta"}, "customStatus": {"id": "1", "statusName": "Em Andamento"}}],
+            2: [{"id": "3", "title": "Antes", "status": False, "estimatedEnd": "2026-02-01"}],
+        }[variables["page"]]
+        return httpx.Response(200, json={"data": {"listingActivitiesV2": {"totalPages": 2, "activities": acts}}})
+
+    monkeypatch.setattr(server, "_client", make_client(handler))
+    result = server.artia_list_my_open_activities(email="eu@x.com")
+    assert [a["id"] for a in result] == ["3", "2"]
+    assert result[1]["folder"] == "Pasta" and result[1]["status"] == "Em Andamento"
+    assert [p["page"] for p in pages] == [1, 2]
+    assert pages[0]["filter"] == {"responsibleUserIds": [9]}
+
+
+def test_list_my_open_activities_requires_known_email(monkeypatch):
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        return httpx.Response(200, json={"data": {"listingOrganizationUsers": []}})
+
+    monkeypatch.setattr(server, "_client", make_client(handler))
+    with pytest.raises(ArtiaError, match="Informe email"):
+        server.artia_list_my_open_activities()
+    with pytest.raises(ArtiaError, match="Nenhum usuário"):
+        server.artia_list_my_open_activities(email="ninguem@x.com")
