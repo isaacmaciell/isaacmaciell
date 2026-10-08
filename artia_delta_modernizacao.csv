@@ -1,4 +1,6 @@
 ﻿Ordenação Manual;ID;Atividade;Início Estimado;Término Estimado;Início real;Término real;Hora Início Estimado;Hora Término Estimado;Hora Início Real;Hora Término Real;Esforço Estimado;Esforço Real;% Completo;% Completo Estimado Calculado;Indicador de Prazo;Predecessora;Sucessora;Recursos;Caminho Crítico;Prioridade;Duração Estimada;Situação;Tipo de Atividade;Categorias;Cliente;Processos;Subprocessos;Status da Alteração
+4;A59;Desenvolvimento da solução de melhoria de processos com IA;13/11/2026;13/11/2026;;;;;;;;;0%;0%;No prazo;;;Isaac Bruno;Sim;0;1;Não Iniciada;Desenvolvimento;Onda 1;;;;[ALTERADA - não listada no resumo]
+6;A19;02.06-Realizar Workshop com advisors;07/08/2026;07/08/2026;;;;;;;;;0%;100%;Atrasado;;;Isaac Bruno;Não;0;1;Pendente;Desenvolvimento;Onda 1;;;;[ALTERADA - não listada no resumo]
 0;F6663644;Auditoria: Análise de Inconsistências - Interagindo e Executando ações & Central de inteligência (liberação de procedimento);12/08/2026;27/11/2026;12/08/2026;;;;;;;0,5;60,00%;60,00%;No prazo;;;;;;76;Em Andamento;;;;;;[ALTERADA]
 5;A84;Testes de conceito, riscos e decisão;31/08/2026;11/09/2026;;;;;;;;;0%;100%;Atrasado;;;Gabriela Ferreira;Não;0;9;Não Iniciada;Desenvolvimento;Onda 1;;;;[REMOVIDA]
 5;A97;[S4EMOD-73] Estudo de Viabilidade e Validação do Modelo Preditivo em Larga Escala;21/09/2026;02/10/2026;21/09/2026;02/10/2026;;;;;;;100%;100%;No prazo;;;"Thiago Sampaio;Gabriela Ferreira";Sim;0;10;Encerrado;Desenvolvimento;Onda 1;;;;[NOVA]
@@ -24,3 +26,4 @@
 25;A117;[S4EMOD-97] Coleta Contínua de Decisões dos Auditores Humanos e Confronto Estatístico A/B;16/11/2026;27/11/2026;;;;;;;;;0%;0%;No prazo;;;Thiago Sampaio;Não;0;10;Não Iniciada;Testes;Onda 1;;;;[NOVA]
 26;A118;[S4EMOD-98] Calibração Fina dos Limiares de Decisão Automática (Fast-Track vs Auditoria);19/11/2026;27/11/2026;;;;;;;;;0%;0%;No prazo;;;Thiago Sampaio;Não;0;6;Não Iniciada;Desenvolvimento;Onda 1;;;;[NOVA]
 27;A119;[S4EMOD-99] Relatório Executivo de Resultados e Validação em Modo Sombra para a Diretoria;24/11/2026;27/11/2026;;;;;;;;;0%;0%;No prazo;;;Thiago Sampaio;Não;0;4;Não Iniciada;Planejamento;Onda 1;;;;[NOVA]
+1;A61;Operação assistida;23/11/2026;27/11/2026;;;;;;;;;0%;0%;No prazo;;;Isaac Bruno;Não;0;5;Não Iniciada;Desenvolvimento;Onda 1;;;;[ALTERADA - não listada no resumo]
