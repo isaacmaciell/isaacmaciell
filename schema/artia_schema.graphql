@@ -1,0 +1,1328 @@
+type Account {
+  accountId: Int
+  depth: Int
+  fullPath: String
+  id: ID!
+  name: String!
+  parentId: Int
+  pathIds: [Int!]
+  status: Int!
+  type: String
+}
+
+type AccountId {
+  id: ID!
+  name: String!
+}
+
+type Activity {
+  actualEffort: Float
+  actualEnd: DateTime
+  actualSprintName: String
+  actualStart: DateTime
+  comments: [Comment!]
+  communityId: Int
+  completedPercent: Float
+  createdAt: DateTime
+  createdById: Int
+  createdForUser: Boolean
+  customColumns: String
+  customField: [OrganizationCustomFields!]
+  customStatus: CustomStatus
+  customStatusId: Int
+  daysToCalculation: Int
+  deletedAt: DateTime
+  description: String
+  distributeAllocationAutomatically: Boolean
+  durationCalculated: Int
+  durationEstimatedCalculated: Int
+  estimatedEffort: Float
+  estimatedEnd: DateTime
+  estimatedStart: DateTime
+  financeAccomplished: Float
+  financePredicted: Float
+  folderId: Int
+  folderTypeName: String
+  groupCategories: String
+  id: ID
+  isCriticalPath: Boolean
+  lastCalculation: DateTime
+  parent: Folder
+  participants: [ActivityParticipant!]
+  points: Float
+  position: Int
+  predecessors: [ActivityDependencyRelation!]
+  priority: Int
+  projectPrioritization: Int
+  recurrence: ActivityRecurrence
+  remainingDays: Int
+  remainingEffort: Float
+  replanned: Boolean
+  replannedCount: Int
+  responsible: User
+  schedulePerformanceIndex: String
+  status: Boolean!
+  successors: [ActivityDependencyRelation!]
+  teamSprintName: String
+  tendencyEnd: DateTime
+  tfsKey: String
+  timeActualEnd: HoursTime
+  timeActualStart: HoursTime
+  timeEstimatedEnd: HoursTime
+  timeEstimatedStart: HoursTime
+  title: String
+  typeColor: String
+  uid: Int
+  updatedAt: DateTime
+  verifyConflicts: Boolean
+  workDaysEstimated: Int
+}
+
+type ActivityCollectionV2 {
+  activities: [ActivityV2!]!
+  currentPage: Int!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+type ActivityCustomStatusHistory {
+  activityId: Int
+  activityTitle: String
+  createdAt: DateTime
+  customStatusId: Int
+  customStatusName: String
+  enteredAt: DateTime
+  exitedAt: DateTime
+  id: ID
+  organizationId: Int
+  timeSpentHours: Float
+  updatedAt: DateTime
+}
+
+type ActivityDependency {
+  accountId: Int
+  id: Int
+  linkType: String
+  predecessorId: Int
+  successorId: Int
+  variation: Int
+}
+
+type ActivityDependencyRelation {
+  activityId: Int
+  id: Int
+  linkType: String
+  variation: Int
+}
+
+input ActivityDependencyRelationInput {
+  activityId: Int!
+  variation: Int
+  linkType: String
+}
+
+input ActivityFilterV2Input {
+  title: String
+  customStatusIds: [Int!]
+  responsibleUserIds: [Int!]
+  participantUserIds: [Int!]
+  estimatedStart: DateRangeInput
+  estimatedEnd: DateRangeInput
+  actualStart: DateRangeInput
+  actualEnd: DateRangeInput
+  teamIds: [Int!]
+  folderTypeIds: [Int!]
+  categories: [String!]
+  isCriticalPath: Boolean
+  priority: IntRangeInput
+  points: FloatRangeInput
+  estimatedEffort: FloatRangeInput
+  actualEffort: FloatRangeInput
+  completedPercent: FloatRangeInput
+  financePredicted: FloatRangeInput
+  financeAccomplished: FloatRangeInput
+  createdAt: DateRangeInput
+  tendencyEnd: DateRangeInput
+}
+
+type ActivityParticipant {
+  email: String
+  id: ID
+  name: String
+  role: ActivityParticipantRole
+}
+
+input ActivityParticipantInput {
+  userId: Int!
+  role: ActivityParticipantRole
+}
+
+enum ActivityParticipantRole {
+  PARTICIPANT
+  INFORMED
+}
+
+type ActivityRecurrence {
+  createDaysBefore: Int
+  daysOfWeek: [Int!]
+  endDate: DateTime
+  endDateOnWeekend: String
+  formOfCreation: String
+  recurrenceFrequency: Int
+  recurrenceFrequencyType: String
+  startDate: DateTime
+  startDateOnWeekend: String
+  times: Int
+}
+
+input ActivityRecurrenceInput {
+  recurrenceFrequencyType: String!
+  recurrenceFrequency: Int!
+  daysOfWeek: [Int!]!
+  startDate: DateTime!
+  endDate: DateTime
+  times: Int
+  endDateOnWeekend: String
+  startDateOnWeekend: String
+  formOfCreation: String
+  createDaysBefore: Int
+  allRecurrence: Boolean
+}
+
+enum ActivitySortByEnum {
+  ID
+  TITLE
+  ESTIMATED_START
+  ESTIMATED_END
+  ACTUAL_START
+  ACTUAL_END
+  ESTIMATED_EFFORT
+  ACTUAL_EFFORT
+  COMPLETED_PERCENT
+  POINTS
+}
+
+type ActivityV2 {
+  account: Account
+  actualEffort: Float
+  actualEnd: DateTime
+  actualStart: DateTime
+  categories: [Category!]
+  comments: [Comment!]
+  communityId: Int
+  completedPercent: Float
+  createdAt: DateTime
+  createdById: Int
+  createdForUser: Boolean
+  customColumns: String
+  customField: [OrganizationCustomFields!]
+  customStatus: CustomStatus
+  customStatusEnteredAt: DateTime
+  customStatusId: Int
+  daysToCalculation: Int
+  deletedAt: DateTime
+  description: String
+  distributeAllocationAutomatically: Boolean
+  durationCalculated: Int
+  durationEstimatedCalculated: Int
+  estimatedEffort: Float
+  estimatedEnd: DateTime
+  estimatedStart: DateTime
+  financeAccomplished: Float
+  financePredicted: Float
+  folderId: Int
+  folderType: OrganizationFolder
+  id: ID
+  isCriticalPath: Boolean
+  lastCalculation: DateTime
+  parent: Folder
+  participants: [ActivityParticipant!]
+  points: Float
+  position: Int
+  predecessors: [ActivityDependencyRelation!]
+  priority: Int
+  projectPrioritization: Int
+  recurrence: ActivityRecurrence
+  remainingDays: Int
+  remainingEffort: Float
+  replanned: Boolean
+  replannedCount: Int
+  responsible: User
+  schedulePerformanceIndex: String
+  sprint: Sprint
+  status: Boolean!
+  successors: [ActivityDependencyRelation!]
+  team: Team
+  tendencyEnd: DateTime
+  tfsKey: String
+  timeActualEnd: HoursTime
+  timeActualStart: HoursTime
+  timeEntries(dateAt: DateRangeInput, first: Int): [TimeEntryV2!]
+  timeEstimatedEnd: HoursTime
+  timeEstimatedStart: HoursTime
+  title: String
+  totalDuration(dateAt: DateRangeInput): Float
+  uid: Int
+  updatedAt: DateTime
+  verifyConflicts: Boolean
+  workDaysEstimated: Int
+}
+
+type AdditionalPermission {
+  label: String!
+  value: String!
+}
+
+type AgreementManagement {
+  accountId: Int
+  agreementManagementFinances: [AgreementManagementFinance!]
+  agreementManagementRules: [AgreementManagementRule!]
+  createdAt: DateTime
+  createdById: Int
+  customerId: Int
+  defaultAgreement: Boolean
+  description: String
+  estimatedEnd: DateTime
+  estimatedStart: DateTime
+  id: ID
+  numberAgreement: String
+  organizationId: Int
+  projectIds: [Int!]
+  status: Boolean
+  title: String
+  updatedAt: DateTime
+}
+
+type AgreementManagementFinance {
+  activityTypeIds: [Int!]
+  agreementManagementId: Int
+  allActivityType: Boolean
+  allResources: Boolean
+  classification: String
+  costType: String
+  createdAt: DateTime
+  endDate: DateTime
+  id: ID
+  resourceIds: [Int!]
+  startDate: DateTime
+  updatedAt: DateTime
+  value: Float
+}
+
+type AgreementManagementRule {
+  activityTypeId: Int
+  agreementManagementId: Int
+  createdAt: DateTime
+  dateEnd: DateTime
+  dateStart: DateTime
+  id: ID
+  parameters: String
+  rule: String
+  updatedAt: DateTime
+  uuid: String
+}
+
+type Archive {
+  categoryText: String
+  createdAt: DateTime
+  createdById: Int
+  description: String
+  downloadable: Boolean
+  expiresAt: String
+  fileName: String
+  fileSize: Int
+  folderId: Int
+  id: ID!
+  mimeType: String
+  s3Url: String
+  scanStatus: String
+  title: String
+  updatedAt: DateTime
+  uploaded: Boolean
+  versions: [ArchiveVersion!]!
+}
+
+type ArchiveCollection {
+  archives: [Archive!]!
+  currentPage: Int!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+type ArchiveUploadPayload {
+  id: ID!
+  uploadUrl: String!
+  uploadUrlExpiresAt: DateTime!
+}
+
+type ArchiveVersion {
+  description: String
+  fileName: String
+  fileSize: Int
+  id: ID!
+  isActual: Boolean
+  mimeType: String
+  s3Url: String
+  scanStatus: String
+  uploaded: Boolean
+  uploadedAt: DateTime
+  uploadedBy: String
+}
+
+type Auth {
+  token: String!
+}
+
+type Category {
+  id: ID
+  name: String
+}
+
+type Comment {
+  author: User
+  content: String
+  createdAt: DateTime
+  createdByApi: Boolean
+  createdByMcp: Boolean
+  id: ID
+  registeredBy: User
+  users: [User!]
+}
+
+type CostCenter {
+  code: String
+  id: ID
+  name: String
+  organizationId: Int
+}
+
+"""Autogenerated return type of CreateActivityDependencies."""
+type CreateActivityDependenciesPayload {
+  activityId: Int
+  predecessors: [ActivityDependencyRelation!]
+  successors: [ActivityDependencyRelation!]
+}
+
+type CustomField {
+  entity: String
+  format: String
+  hash: String
+  id: ID
+  kind: String
+  tableLabel: String
+}
+
+type CustomFieldCollection {
+  currentPage: Int!
+  customFields: [CustomFieldV2!]!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+enum CustomFieldEntity {
+  FOLDER
+  PROJECT
+  ACTIVITY
+  TIME_ENTRY
+}
+
+input CustomFieldFiltersInput {
+  entity: CustomFieldEntity
+  kind: CustomFieldKind
+  format: CustomFieldFormat
+  required: Boolean
+}
+
+enum CustomFieldFormat {
+  NUMBER
+  SELECT
+  MONETARY
+  DECIMAL
+  DATE
+  TEXT
+  STRING
+}
+
+enum CustomFieldKind {
+  SPACER
+  BLANK_LINE
+  TEXT
+  FIELD
+  TAB
+}
+
+enum CustomFieldSortBy {
+  POSITION
+  ID
+}
+
+enum CustomFieldSortDirection {
+  ASC
+  DESC
+}
+
+type CustomFieldV2 {
+  entity: CustomFieldEntity
+  format: CustomFieldFormat
+  hash: String
+  id: ID
+  kind: CustomFieldKind
+  multiple: Boolean!
+  options: [String!]
+  position: Int!
+  required: Boolean!
+  tableLabel: String
+}
+
+type CustomStatus {
+  id: ID!
+  status: Boolean!
+  statusName: String!
+}
+
+type Customer {
+  address: String
+  contactName: String
+  createdAt: DateTime
+  document: String
+  email: String
+  generalInfo: String
+  id: ID
+  legalName: String
+  name: String
+  organizationId: Int
+  phone: String
+  updatedAt: DateTime
+}
+
+input DateRangeInput {
+  from: ISO8601Date
+  to: ISO8601Date
+}
+
+scalar DateTime
+
+"""Autogenerated return type of DeleteArchive."""
+type DeleteArchivePayload {
+  message: String!
+}
+
+"""Autogenerated return type of DestroyActivities."""
+type DestroyActivitiesPayload {
+  message: String!
+}
+
+type Finance {
+  activityId: Int
+  amount: Float
+  billable: Int
+  categoryText: String
+  classification: String!
+  costCenter: String
+  date: DateTime
+  description: String
+  financialRating: String
+  folderId: Int
+  generalLedgerAccount: String
+  id: ID
+  kind: String
+  launchCostCenterId: Int
+  payable: Int
+  resourceCostCenterId: Int
+  responsible: User
+  serviceOrderName: String
+  serviceOrderNumber: Int
+  serviceOrderStatus: String
+  title: String
+  totalValue: Float
+  unit: String
+  unitValue: Float
+}
+
+input FloatRangeInput {
+  from: Float
+  to: Float
+}
+
+type Folder {
+  accountId: Int!
+  actualCost: Float
+  actualEnd: DateTime
+  actualIncome: Float
+  actualRevenue: Float
+  actualStart: DateTime
+  completedPercent: Float
+  createdAt: DateTime
+  customField: [OrganizationCustomFields!]
+  estimatedAggregatedCost: Float
+  estimatedAggregatedCostRate: Float
+  estimatedCost: Float
+  estimatedEffort: Float
+  estimatedEnd: DateTime
+  estimatedIncome: Float
+  estimatedPartialCost: Float
+  estimatedPartialCostRate: Float
+  estimatedPartialRevenue: Float
+  estimatedPartialRevenueRate: Float
+  estimatedRevenue: Float
+  estimatedStart: DateTime
+  financesActualCost: Float
+  financesEstimatedCost: Float
+  folderTypeName: String
+  id: ID!
+  name: String!
+  parent: Folder!
+  status: Boolean!
+  totalActualCost: Float
+  totalActualRevenue: Float
+  totalEstimatedCost: Float
+  totalEstimatedRevenue: Float
+  updatedAt: DateTime
+}
+
+type FolderCollection {
+  currentPage: Int!
+  folders: [Folder!]!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+input FolderFilterInput {
+  name: String
+  status: Boolean
+  parentIds: [Int!]
+  folderTypeIds: [Int!]
+  estimatedStart: DateRangeInput
+  estimatedEnd: DateRangeInput
+  actualStart: DateRangeInput
+  actualEnd: DateRangeInput
+}
+
+enum FolderSortByEnum {
+  ID
+  NAME
+  CREATED_AT
+}
+
+type HoursApproval {
+  approvalDate: DateTime
+  approver: User
+  comments: String
+  status: Int
+}
+
+scalar HoursTime
+
+"""An ISO 8601-encoded date"""
+scalar ISO8601Date
+
+input IntRangeInput {
+  from: Int
+  to: Int
+}
+
+input InviteUserInput {
+  name: String!
+  email: String!
+  roleName: String!
+  financial: Boolean
+  approver: Boolean
+  canUseAnalytics: Boolean
+  canUseSprints: Boolean
+}
+
+"""Represents untyped JSON"""
+scalar JSON
+
+type Mutation {
+  acceptTermsOfUse(userId: Int!, accepted: Boolean!, version: Int!): TermsOfUse!
+  addActivityParticipants(activityId: Int!, participants: [ActivityParticipantInput!]!): Activity!
+  addFinanceAgreementManagement(
+    agreementManagementId: ID!
+
+    """hour | period"""
+    costType: String!
+
+    """expense | revenue"""
+    classification: String!
+    value: Float!
+    startDate: DateTime!
+    endDate: DateTime!
+    allActivityType: Boolean
+    allResources: Boolean
+    activityTypeIds: [Int!]
+    resourceIds: [Int!]
+  ): AgreementManagementFinance!
+  addParticipantToAccount(accountId: Int!, userId: Int, email: String, name: String, roleName: String!, orgRole: String, abilities: [String!]): Participant!
+  addProjectAgreementManagement(
+    """Agreement management ID"""
+    id: ID!
+    projectId: Int!
+  ): AgreementManagement!
+  addRuleAgreementManagement(
+    agreementManagementId: ID!
+    activityTypeId: Int
+    dateStart: DateTime
+    dateEnd: DateTime
+    rule: String!
+
+    """JSON string with rule parameters"""
+    parameters: String!
+  ): AgreementManagementRule!
+  assignCostCenterToUser(userId: Int!, costCenterId: Int!, startDate: String!, endDate: String!): OrganizationUserCostCenter!
+  assignSkillToUser(userId: Int!, organizationSkillId: Int!): OrganizationUserSkill!
+  assignUserToTeam(userId: Int!, teamId: Int!, isTeamManager: Boolean): TeamUser!
+  authenticationByClient(clientId: String!, secret: String!): Auth!
+  authenticationByEmail(email: String!, password: String!): Auth!
+  changeCustomStatus(id: ID!, accountId: Int, customStatusId: Int, status: Boolean): Project!
+  changeCustomStatusActivity(id: ID!, accountId: Int, folderId: Int!, customStatusId: Int, status: Boolean): Activity!
+  changeFolderStatus(id: ID!, status: Boolean!): Folder!
+  changeServiceOrderStatus(id: ID!, status: Int!): ServiceOrder!
+  confirmArchiveUpload(id: ID!): Archive!
+  createActivity(title: String!, folderId: Int!, accountId: Int, responsibleId: Int, folderTypeId: Int, description: String, categoryText: String, priority: Int, estimatedStart: DateTime, timeEstimatedStart: HoursTime, estimatedEnd: DateTime, timeEstimatedEnd: HoursTime, actualStart: DateTime, timeActualStart: HoursTime, actualEnd: DateTime, timeActualEnd: HoursTime, estimatedEffort: Float, completedPercent: Float, createdBy: String, customField: [OrganizationCustomFieldsInput!], recurrence: ActivityRecurrenceInput, customStatusId: Int, points: Float, sprintId: Int, teamId: Int, predecessors: [ActivityDependencyRelationInput!], successors: [ActivityDependencyRelationInput!], participants: [ActivityParticipantInput!]): Activity!
+  createActivityDependencies(folderId: Int!, activityId: Int!, predecessors: [ActivityDependencyRelationInput!], successors: [ActivityDependencyRelationInput!]): CreateActivityDependenciesPayload!
+  createAgreementManagement(accountId: Int!, title: String!, numberAgreement: String, customerId: Int, description: String, estimatedStart: DateTime, estimatedEnd: DateTime, status: Boolean): AgreementManagement!
+  createArchive(title: String!, mimeType: String!, description: String, versionDescription: String, categoryText: String, downloadable: Boolean, expiresAt: String, activityId: ID, folderId: ID): ArchiveUploadPayload!
+  createArchiveVersion(id: ID!, mimeType: String!, versionDescription: String): ArchiveUploadPayload!
+  createComment(accountId: Int!, id: Int!, object: String!, content: String!, createdBy: String, users: [String!]): Comment!
+  createCostCenter(accountId: Int!, name: String!, code: String!): CostCenter!
+  createCustomer(name: String!, legalName: String, document: String, contactName: String, email: String, phone: String, address: String, generalInfo: String): Customer!
+  createFinance(title: String!, folderId: Int!, accountId: Int!, activityId: Int, responsibleId: Int, description: String, categoryText: String, kind: String!, date: DateTime!, unit: String, unitValue: Float, amount: Float, totalValue: Float!, generalLedgerAccount: String, costCenter: String, financialRating: String, createdBy: String, resourceCostCenterId: Int, launchCostCenterId: Int, classification: String, billable: Int, payable: Int): Finance!
+  createFolder(name: String!, parentId: Int!, accountId: Int, estimatedStart: DateTime, estimatedEnd: DateTime, actualStart: DateTime, actualEnd: DateTime, folderTypeId: Int, estimatedEffort: Float, completedPercent: Float, estimatedRevenue: Float, actualRevenue: Float, estimatedCost: Float, actualCost: Float, createdBy: String, customField: [OrganizationCustomFieldsInput!]): Folder!
+  createOrganizationSkill(name: String!): OrganizationSkill!
+  createProject(name: String!, parentId: Int!, accountId: Int, createdForUser: Boolean, skipNotification: Int, templateId: ID, categoryText: String, templateKeepParticipant: Int, folderTypeId: Int, priority: Int, customerId: Int, justification: String, premise: String, estimatedStart: DateTime, estimatedEnd: DateTime, actualStart: DateTime, actualEnd: DateTime, restriction: String, description: String, projectNumber: String, lastInformations: String, estimatedEffort: Float, completedPercent: Float, actualCost: Float, estimatedCost: Float, actualRevenue: Float, estimatedRevenue: Float, createdBy: String, customField: [OrganizationCustomFieldsInput!], costCenterId: Int, costCenterName: String): Project!
+  createServiceOrder(name: String!, folderId: Int!, status: Int!, responsibleUserId: Int, number: Int, customerId: Int, description: String, observation: String): ServiceOrder!
+  createTeam(name: String!, memberIds: [Int!], responsibleId: Int): Team!
+  createTimeEntry(accountId: Int!, activityId: Int!, timeEntryStatusId: Int, dateAt: DateTime!, startTime: HoursTime!, duration: Float!, createdBy: String, observation: String, customField: [OrganizationCustomFieldsInput!], customStatusId: Int, kindOfHours: String): TimeEntry!
+  createUserAbsence(userId: Int!, startDate: String!, endDate: String!, title: String): ParticipantAbsence!
+  createUserCost(userId: Int!, value: Float!, durationStart: String!, durationEnd: String!, costType: String!): OrganizationUserCost!
+  deleteArchive(id: ID!): DeleteArchivePayload!
+  destroyActivities(ids: [Int!]!, accountId: Int): DestroyActivitiesPayload!
+  destroyActivityDependencies(folderId: Int!, activityId: Int!, ids: [Int!]!): [ActivityDependency!]!
+  destroyAgreementManagement(id: ID!): AgreementManagement!
+  destroyAllProject(ids: [Int!]!, accountId: Int): [Project!]!
+  destroyCostCenter(accountId: Int!, id: Int!): CostCenter!
+  destroyCustomer(id: ID!): Customer!
+  destroyFinance(ids: [Int!]!, accountId: Int!): [Finance!]!
+  destroyFolder(id: ID!): Folder!
+  destroyFolders(ids: [ID!]!): [Folder!]!
+  destroyOrganizationSkill(id: Int!): OrganizationSkill!
+  destroyProject(id: ID!, accountId: Int): Project!
+  destroyServiceOrder(id: ID!): ServiceOrder!
+  destroyTeam(id: Int!): Team!
+  destroyTimeEntry(accountId: Int!, id: ID!): TimeEntry!
+  destroyUserAbsence(id: Int!): JSON!
+  destroyUserCost(id: Int!): JSON!
+  inviteOrganizationUser(input: InviteUserInput!): OrganizationUser!
+  removeActivityParticipants(activityId: Int!, participants: [ActivityParticipantInput!]!): Activity!
+  removeCostCenterFromUser(id: Int!): JSON!
+  removeFinanceAgreementManagement(id: ID!): AgreementManagementFinance!
+  removeParticipantFromAccount(participantId: Int!): JSON!
+  removeProjectAgreementManagement(projectId: Int!): [Int!]!
+  removeRuleAgreementManagement(id: ID!, agreementManagementId: ID!): AgreementManagementRule!
+  removeSkillFromUser(id: Int!): JSON!
+  removeUserFromTeam(id: Int!): JSON!
+  renewArchiveUploadUrl(id: ID!): ArchiveUploadPayload!
+  setActivityParticipants(activityId: Int!, participants: [ActivityParticipantInput!]!): Activity!
+  setDefaultAgreementManagement(
+    """Agreement management ID to set as default for the organization"""
+    id: ID!
+  ): AgreementManagement!
+  suspendOrganizationUser(id: ID!): JSON!
+  updateActivity(id: ID!, title: String!, accountId: Int, folderId: Int, responsibleId: Int, description: String, categoryText: String, priority: Int, estimatedStart: DateTime, timeEstimatedStart: HoursTime, estimatedEnd: DateTime, timeEstimatedEnd: HoursTime, actualStart: DateTime, timeActualStart: HoursTime, actualEnd: DateTime, timeActualEnd: HoursTime, estimatedEffort: Float, completedPercent: Float, folderTypeId: Int, updatedBy: String, customField: [OrganizationCustomFieldsInput!], recurrence: ActivityRecurrenceInput, customStatusId: Int, points: Float, sprintId: Int, teamId: Int): Activity!
+  updateActivityDependency(folderId: Int!, activityId: Int!, id: Int!, variation: Int, linkType: String): ActivityDependency!
+  updateAdditionalPermissions(input: UpdateParticipantInput!): Participant!
+  updateAgreementManagement(id: ID!, title: String, numberAgreement: String, customerId: Int, description: String, estimatedStart: DateTime, estimatedEnd: DateTime, status: Boolean): AgreementManagement!
+  updateArchive(id: ID!, title: String, description: String, versionDescription: String, categoryText: String, downloadable: Boolean, expiresAt: String): Archive!
+  updateCostCenter(accountId: Int!, id: Int!, name: String!, code: String!): CostCenter!
+  updateCustomer(id: ID!, name: String, legalName: String, document: String, contactName: String, email: String, phone: String, address: String, generalInfo: String): Customer!
+  updateFinance(id: ID!, title: String!, folderId: Int!, accountId: Int!, activityId: Int, responsibleId: Int, description: String, categoryText: String, kind: String, date: DateTime, unit: String, unitValue: Float, amount: Float, totalValue: Float, generalLedgerAccount: String, costCenter: String, financialRating: String, updatedBy: String, resourceCostCenterId: Int, launchCostCenterId: Int, classification: String, billable: Int, payable: Int): Finance!
+  updateFinanceAgreementManagement(
+    id: ID!
+    agreementManagementId: ID!
+
+    """hour | period"""
+    costType: String
+
+    """expense | revenue"""
+    classification: String
+    value: Float
+    startDate: DateTime
+    endDate: DateTime
+    allActivityType: Boolean
+    allResources: Boolean
+    activityTypeIds: [Int!]
+    resourceIds: [Int!]
+  ): AgreementManagementFinance!
+  updateFolder(id: ID!, name: String, estimatedStart: DateTime, estimatedEnd: DateTime, actualStart: DateTime, actualEnd: DateTime, folderTypeId: Int, estimatedEffort: Float, completedPercent: Float, estimatedRevenue: Float, actualRevenue: Float, estimatedCost: Float, actualCost: Float, updatedBy: String, customField: [OrganizationCustomFieldsInput!]): Folder!
+  updateOrganizationSkill(id: Int!, name: String!): OrganizationSkill!
+  updateOrganizationUser(input: UpdateOrganizationUserInput!): OrganizationUser!
+  updateParticipant(participantId: ID!, roleName: String, abilities: [String!], state: String): Participant!
+  updateParticipantAccess(input: UpdateParticipantInput!): Participant!
+  updateProject(id: ID!, accountId: Int, name: String, createdForUser: Boolean, skipNotification: Int, categoryText: String, folderTypeId: Int, priority: Int, customerId: Int, justification: String, premise: String, estimatedStart: DateTime, estimatedEnd: DateTime, actualStart: DateTime, actualEnd: DateTime, restriction: String, description: String, projectNumber: String, lastInformations: String, estimatedEffort: Float, completedPercent: Float, actualCost: Float, estimatedCost: Float, actualRevenue: Float, actualIncome: Float, estimatedRevenue: Float, estimatedIncome: Float, updatedBy: String, customField: [OrganizationCustomFieldsInput!], customStatusId: Int, costCenterId: Int, costCenterName: String): Project!
+  updateRuleAgreementManagement(
+    id: ID!
+    activityTypeId: Int
+    dateStart: DateTime
+    dateEnd: DateTime
+    rule: String
+
+    """JSON string with rule parameters"""
+    parameters: String
+  ): AgreementManagementRule!
+  updateServiceOrder(id: ID!, name: String, responsibleUserId: Int, status: Int, number: Int, customerId: Int, description: String, observation: String): ServiceOrder!
+  updateTeam(id: Int!, name: String!): Team!
+  updateTeamUser(teamUserId: Int!, isTeamManager: Boolean!): TeamUser!
+  updateTimeEntry(id: ID!, accountId: Int!, updateBy: String, dateAt: DateTime, startTime: HoursTime, endTime: HoursTime, duration: Float, observation: String, timeEntryStatusId: Int, kindOfHours: String, customField: [OrganizationCustomFieldsInput!]): TimeEntry!
+  updateUserAbsence(id: ID!, startDate: String, endDate: String, title: String): ParticipantAbsence!
+  updateUserCost(id: Int!, value: Float!, durationStart: String!, durationEnd: String!, costType: String): OrganizationUserCost!
+  updateUserCostCenter(id: Int!, userId: Int!, costCenterId: Int!, startDate: String!, endDate: String!): OrganizationUserCostCenter!
+}
+
+type OrganizationCustomCategory {
+  categoryObject: String!
+  id: ID!
+  kind: String!
+  names: String
+  organizationId: Int
+  required: Boolean!
+}
+
+type OrganizationCustomFields {
+  format: String
+  hashField: String
+  kind: String
+  labelText: String
+  options: [String!]
+  required: Boolean
+  tableLabel: String
+  value: String
+}
+
+input OrganizationCustomFieldsInput {
+  hashField: String!
+  value: String!
+}
+
+type OrganizationCustomStatus {
+  accounts: [AccountId!]
+  id: ID!
+  inactive: Boolean!
+  position: Int!
+  status: String!
+  statusName: String!
+  statusObject: String!
+}
+
+type OrganizationFolder {
+  color: String
+  folderObject: String!
+  id: ID!
+  inactive: Boolean!
+  name: String!
+  organizationId: Int
+}
+
+type OrganizationSkill {
+  id: ID
+  name: String
+  organizationId: Int
+  users: [User!]!
+}
+
+type OrganizationSkillCollection {
+  currentPage: Int!
+  organizationSkills: [OrganizationSkill!]!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+input OrganizationSkillFilterInput {
+  name: String
+  userIds: [Int!]
+}
+
+enum OrganizationSkillSortBy {
+  ID
+  NAME
+}
+
+type OrganizationSummary {
+  id: ID
+  name: String
+}
+
+type OrganizationUser {
+  approver: Boolean
+  canUseAnalytics: Boolean
+  canUseSprints: Boolean
+  email: String
+  financial: Boolean
+  id: ID
+  name: String
+  participants: [Participant!]
+  role: String
+  suspended: Boolean
+  userId: Int
+}
+
+type OrganizationUserCost {
+  costType: String
+  durationEnd: String
+  durationStart: String
+  email: String
+  id: ID
+  name: String
+  organizationId: Int
+  userId: Int
+  value: Float
+}
+
+type OrganizationUserCostCenter {
+  code: String
+  costCenterId: Int
+  endDate: String
+  id: ID
+  name: String
+  organizationUserId: Int
+  startDate: String
+}
+
+type OrganizationUserSkill {
+  id: ID
+  organizationId: Int
+  organizationSkillId: Int
+  userId: Int
+}
+
+"""Information about pagination in a connection."""
+type PageInfo {
+  """When paginating forwards, the cursor to continue."""
+  endCursor: String
+
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: String
+}
+
+type Participant {
+  abilities: [String!]
+  accountId: Int
+  email: String
+  id: ID
+  name: String
+  roleName: String
+  state: String
+  userId: Int
+}
+
+type ParticipantAbsence {
+  email: String
+  endDate: String
+  id: ID
+  name: String
+  organizationId: Int
+  startDate: String
+  title: String
+  userId: Int
+}
+
+type Project {
+  accountId: Int
+  activitiesActualEffort: Float
+  activitiesActualEnd: DateTime
+  activitiesActualStart: DateTime
+  activitiesAggregateDuration: Float
+  activitiesBaseLastCompletedPercent: Float
+  activitiesBaseLastEffort: Float
+  activitiesBaseLastEffortWithDate: Float
+  activitiesCompletedPercent: Float
+  activitiesDesignedEffort: Float
+  activitiesDurationEstimated: Float
+  activitiesDurationExecuted: Float
+  activitiesEstimatedEffort: Float
+  activitiesEstimatedEffortWithDate: Float
+  activitiesEstimatedEnd: DateTime
+  activitiesEstimatedStart: DateTime
+  activitiesLastUpdate: DateTime
+  activitiesPercentCompletedCalculated: Float
+  activitiesRemainingEffort: Float
+  activitiesTotalDuration: Float
+  actualCost: Float
+  actualEffort: Float
+  actualEnd: DateTime
+  actualIncome: Float
+  actualRevenue: Float
+  actualStart: DateTime
+  aggregateEffort: Float
+  baseLastActivitiesDurationEstimated: Float
+  baseLastActivitiesDurationExecuted: Float
+  baseLastAggregateEffort: Float
+  baseLastCalculatedEffort: Float
+  baseLastPercentCompletedCalculated: Float
+  baseLastPercentCompletedCalculatedAggregate: Float
+  baseLastSchedulePerformanceIndex: Float
+  calculatedEffort: Float
+  childs(
+    """Returns the elements in the list that come after the specified cursor."""
+    after: String
+
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
+    before: String
+
+    """Returns the first _n_ elements from the list."""
+    first: Int
+
+    """Returns the last _n_ elements from the list."""
+    last: Int
+  ): ProjectChildsConnection
+  completedPercent: Float
+  costCenterId: Int
+  costCenterName: String
+  costIndicator: String
+  costPerformanceIndex: String
+  costVariancePercent: Float
+  createdAt: DateTime
+  customField: [OrganizationCustomFields!]
+  customStatus: CustomStatus
+  customStatusId: Int
+  customerCpfCnpj: String
+  customerName: String
+  deadlineDeviation: Int
+  deadlineIndicator: String
+  deadlineVariancePercent: Float
+  description: String
+  effortDeviation: Float
+  effortIndicator: String
+  estimatedAggregatedCost: Float
+  estimatedAggregatedCostRate: Float
+  estimatedCost: Float
+  estimatedEffort: Float
+  estimatedEnd: DateTime
+  estimatedIncome: Float
+  estimatedPartialCost: Float
+  estimatedPartialCostRate: Float
+  estimatedPartialRevenue: Float
+  estimatedPartialRevenueRate: Float
+  estimatedRevenue: Float
+  estimatedStart: DateTime
+  financesActualCost: Float
+  financesEstimatedCost: Float
+  folderTypeId: Int
+  folderTypeName: String
+  groupCategories: String
+  groupTags: [String!]
+  id: ID
+  justification: String
+  lastInformations: String
+  name: String
+  percentAggregateDuration: Float
+  percentCompletedCalculated: Float
+  percentCompletedCalculatedAggregate: Float
+  premise: String
+  priority: Int
+  projectNumber: String
+  realizedPartialCost: Float
+  replannedCount: String
+  responsibleName: String
+  restriction: String
+  schedulePerformanceIndex: String
+  skipNotification: Boolean
+  status: Boolean
+  tendencyEnd: DateTime
+  totalActualCost: Float
+  totalActualRevenue: Float
+  totalEstimatedCost: Float
+  totalEstimatedRevenue: Float
+  updatedAt: DateTime
+}
+
+type ProjectChilds {
+  depth: Int
+  description: String
+  id: ID
+  name: String
+  parentId: Int
+  type: String
+}
+
+"""The connection type for ProjectChilds."""
+type ProjectChildsConnection {
+  """A list of edges."""
+  edges: [ProjectChildsEdge]
+
+  """A list of nodes."""
+  nodes: [ProjectChilds]
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+}
+
+"""An edge in a connection."""
+type ProjectChildsEdge {
+  """A cursor for use in pagination."""
+  cursor: String!
+
+  """The item at the end of the edge."""
+  node: ProjectChilds
+}
+
+type ProjectCollection {
+  currentPage: Int!
+  projects: [Project!]!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+input ProjectFilterInput {
+  name: String
+  status: Boolean
+  customStatusIds: [Int!]
+  customerIds: [Int!]
+  costCenterIds: [Int!]
+  folderTypeIds: [Int!]
+  responsibleUserIds: [Int!]
+  priority: Int
+  estimatedStart: DateRangeInput
+  estimatedEnd: DateRangeInput
+  actualStart: DateRangeInput
+  actualEnd: DateRangeInput
+}
+
+enum ProjectSortByEnum {
+  ID
+  NAME
+  CREATED_AT
+}
+
+type Query {
+  listingAccountParticipants(accountId: Int!): [Participant!]!
+  listingAccountsByOrganization(status: Int): [Account!]!
+  listingActivities(accountId: Int, folderId: Int!): [Activity!]!
+  listingActivitiesV2(accountId: Int, folderId: Int, page: Int, filter: ActivityFilterV2Input, sortBy: ActivitySortByEnum, sortType: SortTypeEnum): ActivityCollectionV2!
+  listingActivityCustomStatusHistories(page: Int, fetchAll: Boolean, accountId: Int, folderId: Int, activityId: Int): [ActivityCustomStatusHistory!]!
+  listingActivityDependencies(folderId: Int!, activityId: Int): [ActivityDependency!]!
+  listingAdditionalPermissions: [AdditionalPermission!]!
+  listingAgreementManagements(accountId: Int!, page: Int, title: String, status: Boolean, fetchAll: Boolean): [AgreementManagement!]!
+  listingArchives(id: ID, activityId: ID, accountId: ID, folderId: ID, page: Int): ArchiveCollection!
+  listingCommentsNotViewed(accountId: Int!, ids: [Int!], type: String!, viewed: Boolean): [Comment!]!
+  listingCostCenters(accountId: Int!): [CostCenter!]!
+  listingCustomCategories(page: Int, kind: String, names: String, required: Boolean, fetchAll: Boolean, categoryObject: String): [OrganizationCustomCategory!]!
+  listingCustomFields(entity: String): [CustomField!]!
+  listingCustomFieldsV2(filters: CustomFieldFiltersInput, page: Int, sortBy: CustomFieldSortBy, sortType: CustomFieldSortDirection): CustomFieldCollection!
+  listingCustomStatus(accounts: [Int!], inactive: Boolean, statusObject: String, statusName: String): [OrganizationCustomStatus!]!
+  listingCustomers(page: Int, name: String, fetchAll: Boolean): [Customer!]!
+  listingFinances(id: Int, folderId: Int!, accountId: Int!, activityId: Int): [Finance!]!
+  listingFolderTypes(page: Int, name: String, inactive: Boolean, fetchAll: Boolean, folderObject: String): [OrganizationFolder!]!
+  listingFolders(accountId: Int!, page: Int): [Folder!]!
+  listingFoldersV2(accountId: Int, page: Int, sortBy: FolderSortByEnum, sortType: SortTypeEnum, filter: FolderFilterInput): FolderCollection!
+  listingOrganizationSkills(page: Int, filter: OrganizationSkillFilterInput, sortBy: OrganizationSkillSortBy, sortType: SortType): OrganizationSkillCollection!
+  listingOrganizationUsers: [OrganizationUser!]!
+  listingOrganizations: [OrganizationSummary!]!
+  listingProjects(accountId: Int!): [Project!]!
+  listingProjectsV2(accountId: Int, page: Int, sortBy: ProjectSortByEnum, sortType: SortTypeEnum, filter: ProjectFilterInput): ProjectCollection!
+  listingServiceOrders(accountId: Int!, page: Int!, status: Int, name: String): [ServiceOrder!]!
+  listingTeams: [Team!]!
+  listingTermsOfUse(userId: Int!): [TermsOfUse!]!
+  listingTimeEntries(accountId: Int!, folderId: Int, activityId: Int, onlyMine: Boolean): [TimeEntry!]!
+  listingTimeEntriesV2(accountId: Int, folderId: Int, page: Int, sortBy: TimeEntrySortField, sortType: SortDirection, filter: TimeEntriesFilterInput): TimeEntryCollection!
+  listingUserAbsences(userId: Int!): [ParticipantAbsence!]!
+  listingUserCostCenters(userId: Int!): [OrganizationUserCostCenter!]!
+  listingUserCosts(userId: Int!): [OrganizationUserCost!]!
+  showActivity(accountId: Int, id: ID!, folderId: Int): Activity!
+  showAgreementManagement(id: ID!): AgreementManagement!
+  showCostCenter(id: ID, accountId: Int!): CostCenter!
+  showCustomer(id: ID!): Customer!
+  showFinance(id: ID, folderId: Int, accountId: Int!): [Finance!]!
+  showFolder(id: ID!): Folder!
+  showOrganizationSkill(id: Int!): OrganizationSkill!
+  showOrganizationUser(userId: Int!): OrganizationUser!
+  showProject(accountId: Int, id: ID!): Project!
+  showServiceOrder(id: ID!): ServiceOrder!
+  showTeam(id: ID!): Team!
+  showTermOfUse(id: ID!): TermsOfUse!
+  showTimeEntry(accountId: Int!, id: ID!): TimeEntry!
+}
+
+type ServiceOrder {
+  createdAt: DateTime
+  customerId: Int
+  description: String
+  folderId: Int
+  id: ID
+  name: String
+  number: Int
+  observation: String
+  organizationId: Int
+  responsibleUserId: Int
+  status: String
+  updatedAt: DateTime
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+enum SortType {
+  ASC
+  DESC
+}
+
+enum SortTypeEnum {
+  ASC
+  DESC
+}
+
+type Sprint {
+  endDate: ISO8601Date
+  id: ID
+  name: String
+  startDate: DateTime
+  status: String
+}
+
+type Team {
+  id: ID
+  members: [TeamUser!]!
+  name: String
+  organizationId: Int
+  responsible: TeamUser
+}
+
+type TeamUser {
+  email: String
+  id: ID
+  isTeamManager: Boolean
+  name: String
+  organizationId: Int
+  teamId: Int
+  userId: Int
+}
+
+type TermsOfUse {
+  accepted: Boolean
+  acceptedAt: DateTime
+  createdAt: DateTime
+  id: ID
+  locale: String
+  user: User
+  version: Int
+}
+
+input TimeEntriesFilterInput {
+  dateAt: DateRangeInput
+  ownerUserIds: [Int!]
+  activityId: Int
+  onlyMine: Boolean
+}
+
+type TimeEntry {
+  accountId: Int
+  activityId: Int
+  approvalDate: DateTime
+  approver: String
+  billable: Int
+  calculationDate: DateTime
+  calculationRule: String
+  comments: String
+  customColumns: String
+  customField: [OrganizationCustomFields!]
+  dateAt: DateTime
+  duration: Float
+  endTime: String
+  folderId: Int
+  id: ID
+  kindOfHours: String
+  observation: String
+  payable: Int
+  registeredBy: User
+  resourceCostCenterId: Int
+  serviceOrderName: String
+  serviceOrderNumber: Int
+  serviceOrderStatus: String
+  startTime: HoursTime
+  status: Int
+  timeEntryCostCenterId: Int
+  timeEntryStatusId: Int
+  timeEntryTypeId: Int
+  userId: Int
+}
+
+type TimeEntryCollection {
+  currentPage: Int!
+  timeEntries: [TimeEntryV2!]!
+  totalCount: Int!
+  totalPages: Int!
+}
+
+enum TimeEntrySortField {
+  ID
+  ACTIVITY_NAME
+  DATE_AT
+  DURATION
+  DURATION_HOURS
+  START_TIME
+  END_TIME
+  OBSERVATION
+  PARTICIPANT
+}
+
+type TimeEntryV2 {
+  accountId: Int
+  activityId: Int
+  billable: Int
+  calculationDate: DateTime
+  calculationRule: String
+  customColumns: String
+  customField: [OrganizationCustomFields!]
+  dateAt: DateTime
+  duration: Float
+  endTime: String
+  folderId: Int
+  hoursApproval: HoursApproval
+  id: ID
+  kindOfHours: String
+  observation: String
+  payable: Int
+  registeredBy: User
+  resourceCostCenterId: Int
+  serviceOrder: ServiceOrder
+  startTime: HoursTime
+  timeEntryCostCenterId: Int
+  timeEntryStatusId: Int
+  timeEntryTypeId: Int
+  userId: Int
+}
+
+input UpdateOrganizationUserInput {
+  id: ID!
+  roleName: String
+  name: String
+  email: String
+  financial: Boolean
+  approver: Boolean
+  canUseAnalytics: Boolean
+  canUseSprints: Boolean
+  twoFactorBypass: Boolean
+}
+
+input UpdateParticipantInput {
+  participantId: ID!
+  roleName: String
+  state: String
+  abilities: [String!]
+}
+
+type User {
+  email: String
+  id: ID
+  name: String
+}
