@@ -109,7 +109,7 @@ def test_build_requires_mandatory_arguments():
         ops.CREATE_ACTIVITY.build({"accountId": 1, "folderId": 2})
 
 
-@pytest.mark.parametrize("value,expected", [(90, 90), ("90", 90), ("1:30", 90), ("1h30", 90), ("2h", 120), ("45min", 45)])
+@pytest.mark.parametrize("value,expected", [(2, 2.0), ("1,5", 1.5), ("1.5", 1.5), ("01:30", 1.5), ("1:30", 1.5), ("1h30", 1.5), ("2h", 2.0), ("45min", 0.75)])
 def test_parse_duration(value, expected):
     assert server.parse_duration(value) == expected
 
@@ -136,7 +136,7 @@ def test_create_time_entry_tool(monkeypatch):
     assert result == {"id": "99"}
     assert sent["variables"] == {
         "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "startTime": "09:00",
-        "duration": 75.0, "observation": "Reunião",
+        "duration": 1.25, "observation": "Reunião",
     }
     assert "createTimeEntry(" in sent["query"]
 

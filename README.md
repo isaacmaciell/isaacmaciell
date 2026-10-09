@@ -12,7 +12,7 @@ projetos, atividades e apontamentos de horas.
 | Operações contra o schema (`scripts/validate_operations.py`) | ✅ 21/21 válidas |
 | Leituras no Artia real (projetos, pastas, atividades, participantes, status, tipos, apontamentos) | ✅ Testadas |
 | Escritas (criar/atualizar atividade, atualizar pasta, remover participante, excluir atividade) | ✅ Usadas na atualização do projeto de modernização |
-| Apontamento de horas (`artia_create_time_entry`, `artia_delete_time_entry`) | ⚠️ Schema válido, mas nunca executado: a unidade de `duration` (minutos) não foi confirmada |
+| Apontamento de horas (`artia_create_time_entry`, `artia_delete_time_entry`) | ⚠️ Schema válido; esforço em **horas** (conforme o formulário do Artia: `1,5` ou `01:30`). Nenhum lançamento real foi criado ainda pela ferramenta |
 
 ## Configuração
 
@@ -85,6 +85,30 @@ claude mcp add artia \
   -e ARTIA_CLIENT_ID=... -e ARTIA_CLIENT_SECRET=... -e ARTIA_ORGANIZATION_ID=... -e ARTIA_ACCOUNT_ID=... \
   -- python -m artia_mcp.server
 ```
+
+## Sincronizar o Artia com uma planilha Gantt
+
+`scripts/sync_gantt.py` compara uma exportação do Gantt (xlsx ou csv) com o Artia e aplica só a diferença.
+Instale o extra: `pip install -e ".[sync]"`.
+
+```bash
+# 1. Simulação (padrão): mostra o plano, não grava nada
+python scripts/sync_gantt.py planilha.xlsx --sheet "Gantt Comparativo"
+
+# 2. Aplicar criações, atualizações e datas de pastas
+python scripts/sync_gantt.py planilha.xlsx --sheet "Gantt Comparativo" --apply --fallback-responsible <userId>
+
+# 3. Exclusões exigem confirmação extra
+python scripts/sync_gantt.py planilha.xlsx --apply --allow-delete
+```
+
+Regras: a atividade `A97` da planilha é o `uid` 97 do Artia (ou, se não existir, a de mesmo título na mesma pasta,
+para não duplicar); o primeiro nome de *Recursos* é o responsável e os demais, participantes; uma atividade marcada
+`[REMOVIDA]` ou ausente da planilha entra como candidata a exclusão. Atividades novas vão para a última pasta `F...`
+anterior na planilha (a pasta inferida aparece no relatório: confira antes de aplicar).
+Nunca são gravados os campos que o Artia calcula (% e situação de pastas, caminho crítico, datas reais de pastas); eles
+só aparecem como informação. Responsáveis que não são participantes ativos do grupo de trabalho são listados e,
+nas atividades novas, substituídos por `--fallback-responsible`.
 
 ## Testes
 

@@ -337,20 +337,26 @@ def artia_list_activity_types(object_type: str = "Activity") -> Any:
 
 
 # ---------------------------------------------------------------- apontamentos
-def parse_duration(value: str | int) -> int:
-    """Converte duração em minutos. Aceita 90, "90", "1:30" ou "1h30"."""
-    if isinstance(value, int):
-        minutes = value
+def parse_duration(value: str | int | float) -> float:
+    """Converte o esforço em HORAS (como no formulário do Artia: "1,5" ou "01:30").
+
+    Aceita 1.5, "1,5", "1:30", "01:30", "1h30", "2h" e "45min". Número simples
+    é sempre interpretado como horas.
+    """
+    if isinstance(value, (int, float)):
+        hours = float(value)
     else:
-        text = value.strip().lower().replace("min", "").replace("m", "")
-        if ":" in text or "h" in text:
-            hours, _, mins = text.replace("h", ":").partition(":")
-            minutes = int(hours or 0) * 60 + int(mins or 0)
+        text = value.strip().lower().replace(",", ".")
+        if text.endswith("min"):
+            hours = float(text[:-3]) / 60
+        elif ":" in text or "h" in text:
+            h, _, m = text.replace("h", ":").partition(":")
+            hours = float(h or 0) + float(m or 0) / 60
         else:
-            minutes = int(text)
-    if minutes <= 0:
-        raise ValueError("A duração do apontamento deve ser maior que zero.")
-    return minutes
+            hours = float(text)
+    if hours <= 0:
+        raise ValueError("O esforço do apontamento deve ser maior que zero.")
+    return round(hours, 4)
 
 
 @mcp.tool()
@@ -381,10 +387,11 @@ def artia_create_time_entry(
 ) -> Any:
     """Registra um apontamento de horas em uma atividade.
 
-    duration: minutos ("90") ou horas ("1:30", "1h30"). start_time: HH:MM
-    (obrigatório no Artia). date_at: AAAA-MM-DD (padrão: hoje).
-    ATENÇÃO: a unidade da duração enviada ao Artia (minutos) ainda não foi
-    confirmada com um apontamento real; confira o primeiro lançamento na tela.
+    duration: esforço em horas, como no formulário do Artia ("1,5", "01:30",
+    "1h30", "45min"; número simples = horas). start_time: HH:MM (a API exige,
+    embora a tela do Artia o trate como opcional). date_at: AAAA-MM-DD (padrão: hoje).
+    ATENÇÃO: nenhum apontamento foi criado de verdade por esta ferramenta ainda;
+    confira o primeiro lançamento na tela do Artia.
     """
     return _run(
         ops.CREATE_TIME_ENTRY,
@@ -392,7 +399,7 @@ def artia_create_time_entry(
         activityId=activity_id,
         dateAt=date_at or date.today().isoformat(),
         startTime=start_time,
-        duration=float(parse_duration(duration)),
+        duration=parse_duration(duration),
         observation=observation,
     )
 
