@@ -266,17 +266,14 @@ def artia_delete_activities(
 
 
 @mcp.tool()
-def artia_list_dependencies(folder_id: int, activity_id: int | None = None) -> Any:
-    """Lista as dependências (predecessoras/sucessoras) de uma pasta ou atividade.
+def artia_list_dependencies(folder_id: int, activity_id: int) -> Any:
+    """Lista as dependências (predecessoras/sucessoras) de uma atividade (id interno).
 
-    O caminho crítico do Artia é calculado a partir destas dependências e das datas.
+    O schema marca activityId como opcional, mas o Artia responde "Activity not
+    found" sem ele; por isso é obrigatório aqui. O caminho crítico do Artia é
+    calculado a partir destas dependências e das datas.
     """
-    try:
-        return _run(ops.LIST_DEPENDENCIES, folderId=folder_id, activityId=activity_id)
-    except ArtiaError as exc:
-        if "não possui" in str(exc):
-            return []
-        raise
+    return _run(ops.LIST_DEPENDENCIES, folderId=folder_id, activityId=activity_id)
 
 
 @mcp.tool()

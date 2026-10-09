@@ -225,7 +225,7 @@ LIST_DEPENDENCIES = OperationSpec(
     "listingActivityDependencies",
     {"folderId": "Int!", "activityId": "Int"},
     "id\npredecessorId\nsuccessorId\nlinkType\nvariation",
-    required=("folderId",),
+    required=("folderId", "activityId"),
 )
 
 CREATE_DEPENDENCIES = OperationSpec(
