@@ -7,14 +7,12 @@ projetos, atividades e apontamentos de horas.
 
 | Etapa | Situação |
 |---|---|
-| Cliente GraphQL (auth, cache e renovação de token) | ✅ Pronto e testado com mocks |
-| Ferramentas de projetos, atividades e apontamentos | ✅ Prontas e testadas com mocks |
-| Teste de autenticação real (`scripts/test_auth.py`) | ⏳ Pendente: credenciais e acesso de rede |
-| Download do schema (`scripts/dump_schema.py`) | ⏳ Pendente: credenciais e acesso de rede |
-| Conferência das operações com o schema real (`scripts/validate_operations.py`) | ⏳ Pendente: depende do schema |
-
-Os nomes de operações e campos em `artia_mcp/operations.py` seguem a documentação pública do Artia,
-mas **ainda não foram conferidos contra o schema real**. O passo 3 abaixo aponta exatamente o que ajustar.
+| Autenticação real (`scripts/test_auth.py`) | ✅ Validada |
+| Schema real (`schema/`, via `scripts/dump_schema.py`) | ✅ Versionado |
+| Operações contra o schema (`scripts/validate_operations.py`) | ✅ 17/17 válidas |
+| Leituras no Artia real (projetos, pastas, atividades, participantes, status, tipos, apontamentos) | ✅ Testadas |
+| Escritas (criar/atualizar atividade, atualizar pasta, remover participante, excluir atividade) | ✅ Usadas na atualização do projeto de modernização |
+| Apontamento de horas (`artia_create_time_entry`, `artia_delete_time_entry`) | ⚠️ Schema válido, mas nunca executado: a unidade de `duration` (minutos) não foi confirmada |
 
 ## Configuração
 
@@ -50,17 +48,30 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 | `artia_graphql` | qualquer (query livre) | avançado |
 | `artia_list_projects` | `listingProjects` | leitura |
 | `artia_get_project` | `showProject` | leitura |
+| `artia_list_folders` | `listingFolders` | leitura |
+| `artia_update_folder` | `updateFolder` | escrita |
 | `artia_list_activities` | `listingActivities` | leitura |
 | `artia_get_activity` | `showActivity` | leitura |
 | `artia_create_activity` | `createActivity` | escrita |
 | `artia_update_activity` | `updateActivity` | escrita |
-| `artia_change_activity_status` | `changeStatusActivity` | escrita |
+| `artia_change_activity_status` | `changeCustomStatusActivity` | escrita |
+| `artia_delete_activities` | `destroyActivities` | **escrita irreversível** |
+| `artia_list_participants` | `listingAccountParticipants` | leitura |
+| `artia_list_custom_status` | `listingCustomStatus` | leitura |
+| `artia_list_activity_types` | `listingFolderTypes` | leitura |
 | `artia_list_time_entries` | `listingTimeEntries` | leitura |
 | `artia_create_time_entry` | `createTimeEntry` | escrita |
 | `artia_delete_time_entry` | `destroyTimeEntry` | escrita |
 
-`artia_create_time_entry` aceita a duração em minutos (`90`) ou horas (`1:30`, `1h30`) e usa a data de hoje
-quando `date_at` não é informado. As ferramentas de atualização enviam apenas os campos informados.
+## Particularidades do Artia (aprendidas na prática)
+
+- **IDs:** o `uid` exibido na tela (ex.: A84) não é o `id` interno usado pela API. Liste as atividades da pasta para mapear.
+- **Hierarquia:** projeto > pastas > atividades. `artia_list_activities` retorna só as atividades diretas da pasta; pasta com apenas subpastas retorna lista vazia.
+- **Responsável:** precisa ser participante **ativo** do grupo de trabalho. Usuário suspenso é recusado ("O responsável deve ser um participante do Grupo de trabalho").
+- **Atualização:** o schema exige `title` em todo `updateActivity`; a ferramenta lê e reenvia o título atual quando você não o informa.
+- **Campos calculados (somente leitura):** caminho crítico (`isCriticalPath`), % completo e situação de pastas/projetos são calculados pelo Artia a partir das atividades e das dependências.
+- **Status e tipos:** use os ids de `artia_list_custom_status` e `artia_list_activity_types`; não há status numérico fixo.
+- **Exclusão:** `artia_delete_activities` é definitiva. Confirme o alvo antes (id interno, título e `uid`).
 
 ## Uso no Claude Code
 

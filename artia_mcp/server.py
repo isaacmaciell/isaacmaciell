@@ -51,11 +51,9 @@ def artia_graphql(query: str, variables: dict[str, Any] | None = None) -> Any:
 
 # --------------------------------------------------------------------- projetos
 @mcp.tool()
-def artia_list_projects(
-    account_id: int | None = None, page: int | None = None, status: str | None = None
-) -> Any:
+def artia_list_projects(account_id: int | None = None) -> Any:
     """Lista os projetos de um grupo de trabalho (accountId)."""
-    return _run(ops.LIST_PROJECTS, accountId=_account(account_id), page=page, status=status)
+    return _run(ops.LIST_PROJECTS, accountId=_account(account_id))
 
 
 @mcp.tool()
@@ -64,27 +62,60 @@ def artia_get_project(project_id: str, account_id: int | None = None) -> Any:
     return _run(ops.SHOW_PROJECT, id=str(project_id), accountId=_account(account_id))
 
 
-# ------------------------------------------------------------------- atividades
+# ----------------------------------------------------------------------- pastas
 @mcp.tool()
-def artia_list_activities(
-    folder_id: int,
-    account_id: int | None = None,
-    page: int | None = None,
-    status: str | None = None,
+def artia_list_folders(account_id: int | None = None, page: int | None = None) -> Any:
+    """Lista as pastas do grupo de trabalho, com a pasta/projeto pai (`parent`)."""
+    return _run(ops.LIST_FOLDERS, accountId=_account(account_id), page=page)
+
+
+@mcp.tool()
+def artia_update_folder(
+    folder_id: str,
+    name: str | None = None,
+    estimated_start: str | None = None,
+    estimated_end: str | None = None,
+    actual_start: str | None = None,
+    actual_end: str | None = None,
+    estimated_effort_hours: float | None = None,
 ) -> Any:
-    """Lista as atividades de uma pasta/projeto (folderId) do Artia."""
+    """Atualiza uma pasta. Só os campos informados são enviados (datas AAAA-MM-DD).
+
+    O % completo e a situação da pasta são calculados pelo Artia a partir das
+    atividades; a API não permite gravá-los de forma confiável.
+    """
     return _run(
-        ops.LIST_ACTIVITIES,
-        accountId=_account(account_id),
-        folderId=folder_id,
-        page=page,
-        status=status,
+        ops.UPDATE_FOLDER,
+        id=str(folder_id),
+        name=name,
+        estimatedStart=estimated_start,
+        estimatedEnd=estimated_end,
+        actualStart=actual_start,
+        actualEnd=actual_end,
+        estimatedEffort=estimated_effort_hours,
     )
 
 
+# ------------------------------------------------------------------- atividades
 @mcp.tool()
-def artia_get_activity(activity_id: str, folder_id: int, account_id: int | None = None) -> Any:
-    """Retorna os detalhes de uma atividade."""
+def artia_list_activities(folder_id: int, account_id: int | None = None) -> Any:
+    """Lista as atividades que estão diretamente em uma pasta/projeto (folderId).
+
+    Uma pasta sem atividades próprias (só subpastas) retorna lista vazia.
+    """
+    try:
+        return _run(ops.LIST_ACTIVITIES, accountId=_account(account_id), folderId=folder_id)
+    except ArtiaError as exc:
+        if "não possui atividades" in str(exc):
+            return []
+        raise
+
+
+@mcp.tool()
+def artia_get_activity(
+    activity_id: str, folder_id: int | None = None, account_id: int | None = None
+) -> Any:
+    """Retorna os detalhes de uma atividade (id interno, não o `uid` exibido na tela)."""
     return _run(
         ops.SHOW_ACTIVITY, id=str(activity_id), accountId=_account(account_id), folderId=folder_id
     )
@@ -98,12 +129,22 @@ def artia_create_activity(
     description: str | None = None,
     estimated_start: str | None = None,
     estimated_end: str | None = None,
+    actual_start: str | None = None,
+    actual_end: str | None = None,
     estimated_effort_hours: float | None = None,
+    completed_percent: float | None = None,
     responsible_id: int | None = None,
+    activity_type_id: int | None = None,
+    custom_status_id: int | None = None,
     category: str | None = None,
     priority: int | None = None,
 ) -> Any:
-    """Cria uma atividade em uma pasta/projeto. Datas no formato AAAA-MM-DD."""
+    """Cria uma atividade em uma pasta/projeto. Datas no formato AAAA-MM-DD.
+
+    O responsável precisa ser um participante ATIVO do grupo de trabalho
+    (veja artia_list_participants). activity_type_id e custom_status_id vêm de
+    artia_list_activity_types e artia_list_custom_status.
+    """
     return _run(
         ops.CREATE_ACTIVITY,
         accountId=_account(account_id),
@@ -112,8 +153,13 @@ def artia_create_activity(
         description=description,
         estimatedStart=estimated_start,
         estimatedEnd=estimated_end,
+        actualStart=actual_start,
+        actualEnd=actual_end,
         estimatedEffort=estimated_effort_hours,
+        completedPercent=completed_percent,
         responsibleId=responsible_id,
+        folderTypeId=activity_type_id,
+        customStatusId=custom_status_id,
         categoryText=category,
         priority=priority,
     )
@@ -128,23 +174,39 @@ def artia_update_activity(
     description: str | None = None,
     estimated_start: str | None = None,
     estimated_end: str | None = None,
+    actual_start: str | None = None,
+    actual_end: str | None = None,
     estimated_effort_hours: float | None = None,
+    completed_percent: float | None = None,
     responsible_id: int | None = None,
+    activity_type_id: int | None = None,
     category: str | None = None,
     priority: int | None = None,
 ) -> Any:
-    """Atualiza campos de uma atividade. Só os campos informados são enviados."""
+    """Atualiza campos de uma atividade. Só os campos informados são enviados.
+
+    O Artia exige o título em toda atualização; se `title` não for informado,
+    o título atual é lido e reenviado.
+    """
+    account = _account(account_id)
+    if title is None:
+        current = _run(ops.SHOW_ACTIVITY, id=str(activity_id), accountId=account, folderId=folder_id)
+        title = current["title"]
     return _run(
         ops.UPDATE_ACTIVITY,
         id=str(activity_id),
-        accountId=_account(account_id),
+        accountId=account,
         folderId=folder_id,
         title=title,
         description=description,
         estimatedStart=estimated_start,
         estimatedEnd=estimated_end,
+        actualStart=actual_start,
+        actualEnd=actual_end,
         estimatedEffort=estimated_effort_hours,
+        completedPercent=completed_percent,
         responsibleId=responsible_id,
+        folderTypeId=activity_type_id,
         categoryText=category,
         priority=priority,
     )
@@ -152,16 +214,45 @@ def artia_update_activity(
 
 @mcp.tool()
 def artia_change_activity_status(
-    activity_id: str, folder_id: int, status: int, account_id: int | None = None
+    activity_id: str, folder_id: int, custom_status_id: int, account_id: int | None = None
 ) -> Any:
-    """Altera o status de uma atividade (código numérico de status do Artia)."""
+    """Altera o status de uma atividade (id de artia_list_custom_status)."""
     return _run(
         ops.CHANGE_ACTIVITY_STATUS,
         id=str(activity_id),
         accountId=_account(account_id),
         folderId=folder_id,
-        status=status,
+        customStatusId=custom_status_id,
     )
+
+
+@mcp.tool()
+def artia_delete_activities(activity_ids: list[int], account_id: int | None = None) -> Any:
+    """EXCLUI atividades de forma definitiva (ids internos). Confirme com o usuário antes."""
+    return _run(ops.DESTROY_ACTIVITIES, ids=activity_ids, accountId=_account(account_id))
+
+
+# ------------------------------------------------------------------- consultas
+@mcp.tool()
+def artia_list_participants(account_id: int | None = None) -> Any:
+    """Lista os participantes ativos do grupo de trabalho (candidatos a responsável)."""
+    return _run(ops.LIST_PARTICIPANTS, accountId=_account(account_id))
+
+
+@mcp.tool()
+def artia_list_custom_status(
+    object_type: str | None = None, account_id: int | None = None
+) -> Any:
+    """Lista os status personalizados. object_type: "Activity" ou "Project"."""
+    return _run(
+        ops.LIST_CUSTOM_STATUS, accounts=[_account(account_id)], statusObject=object_type
+    )
+
+
+@mcp.tool()
+def artia_list_activity_types(object_type: str = "Activity") -> Any:
+    """Lista tipos cadastrados. object_type: "Activity", "Project", "Folder" ou "Milestone"."""
+    return _run(ops.LIST_FOLDER_TYPES, fetchAll=True, folderObject=object_type)
 
 
 # ---------------------------------------------------------------- apontamentos
@@ -184,21 +275,17 @@ def parse_duration(value: str | int) -> int:
 @mcp.tool()
 def artia_list_time_entries(
     account_id: int | None = None,
+    folder_id: int | None = None,
     activity_id: int | None = None,
-    user_id: int | None = None,
-    start_date: str | None = None,
-    end_date: str | None = None,
-    page: int | None = None,
+    only_mine: bool | None = None,
 ) -> Any:
-    """Lista apontamentos de horas, com filtros opcionais (datas AAAA-MM-DD)."""
+    """Lista apontamentos de horas, com filtros opcionais."""
     return _run(
         ops.LIST_TIME_ENTRIES,
         accountId=_account(account_id),
+        folderId=folder_id,
         activityId=activity_id,
-        userId=user_id,
-        startDate=start_date,
-        endDate=end_date,
-        page=page,
+        onlyMine=only_mine,
     )
 
 
@@ -206,25 +293,25 @@ def artia_list_time_entries(
 def artia_create_time_entry(
     activity_id: int,
     duration: str,
+    start_time: str,
     date_at: str | None = None,
     account_id: int | None = None,
-    start_time: str | None = None,
-    end_time: str | None = None,
     observation: str | None = None,
 ) -> Any:
     """Registra um apontamento de horas em uma atividade.
 
-    duration: minutos ("90") ou horas ("1:30", "1h30"). date_at: AAAA-MM-DD
-    (padrão: hoje). start_time/end_time: HH:MM, opcionais.
+    duration: minutos ("90") ou horas ("1:30", "1h30"). start_time: HH:MM
+    (obrigatório no Artia). date_at: AAAA-MM-DD (padrão: hoje).
+    ATENÇÃO: a unidade da duração enviada ao Artia (minutos) ainda não foi
+    confirmada com um apontamento real; confira o primeiro lançamento na tela.
     """
     return _run(
         ops.CREATE_TIME_ENTRY,
         accountId=_account(account_id),
         activityId=activity_id,
         dateAt=date_at or date.today().isoformat(),
-        duration=parse_duration(duration),
         startTime=start_time,
-        endTime=end_time,
+        duration=float(parse_duration(duration)),
         observation=observation,
     )
 

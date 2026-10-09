@@ -130,10 +130,13 @@ def test_create_time_entry_tool(monkeypatch):
         return httpx.Response(200, json={"data": {"createTimeEntry": {"id": "99"}}})
 
     monkeypatch.setattr(server, "_client", make_client(handler))
-    result = server.artia_create_time_entry(activity_id=10, duration="1:15", date_at="2026-10-08", observation="Reunião")
+    result = server.artia_create_time_entry(
+        activity_id=10, duration="1:15", start_time="09:00", date_at="2026-10-08", observation="Reunião"
+    )
     assert result == {"id": "99"}
     assert sent["variables"] == {
-        "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "duration": 75, "observation": "Reunião",
+        "accountId": 42, "activityId": 10, "dateAt": "2026-10-08", "startTime": "09:00",
+        "duration": 75.0, "observation": "Reunião",
     }
     assert "createTimeEntry(" in sent["query"]
 
@@ -144,3 +147,54 @@ def test_list_projects_requires_account(monkeypatch):
     monkeypatch.setattr(server, "_client", client)
     with pytest.raises(ArtiaError, match="account_id"):
         server.artia_list_projects()
+
+
+def _tool_client(monkeypatch, responder):
+    def handler(request):
+        body = json.loads(request.content)
+        if "authenticationByClient" in body["query"]:
+            return auth_response()
+        return httpx.Response(200, json=responder(body))
+
+    monkeypatch.setattr(server, "_client", make_client(handler))
+
+
+def test_update_activity_reuses_current_title(monkeypatch):
+    sent = []
+
+    def responder(body):
+        sent.append(body)
+        if "showActivity" in body["query"]:
+            return {"data": {"showActivity": {"title": "Título atual"}}}
+        return {"data": {"updateActivity": {"id": "1"}}}
+
+    _tool_client(monkeypatch, responder)
+    server.artia_update_activity("1", folder_id=5, completed_percent=50.0)
+    assert sent[-1]["variables"]["title"] == "Título atual"
+    assert sent[-1]["variables"]["completedPercent"] == 50.0
+
+
+def test_list_activities_returns_empty_for_folder_without_activities(monkeypatch):
+    _tool_client(
+        monkeypatch,
+        lambda body: {"errors": [{"message": "Esse grupo de trabalho não possui atividades"}]},
+    )
+    assert server.artia_list_activities(folder_id=1) == []
+
+
+def test_other_graphql_errors_still_raise(monkeypatch):
+    _tool_client(monkeypatch, lambda body: {"errors": [{"message": "Sem permissão"}]})
+    with pytest.raises(ArtiaError, match="Sem permissão"):
+        server.artia_list_activities(folder_id=1)
+
+
+def test_operations_match_real_schema():
+    import pathlib
+
+    from graphql import build_client_schema, validate
+
+    path = pathlib.Path(__file__).resolve().parents[1] / "schema" / "artia_schema.json"
+    schema = build_client_schema(json.loads(path.read_text()))
+    for name, spec in ops.ALL_OPERATIONS.items():
+        errors = validate(schema, parse(spec.document(spec.arg_types)))
+        assert not errors, f"{name}: {[e.message for e in errors]}"
