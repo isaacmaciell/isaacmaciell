@@ -11,6 +11,7 @@ from mcp.server.mcpserver import MCPServer
 from . import operations as ops
 from .client import ArtiaClient, ArtiaConfig, ArtiaError
 
+MAX_PAGES = 100
 mcp = MCPServer("artia")
 _client: ArtiaClient | None = None
 
@@ -65,8 +66,20 @@ def artia_get_project(project_id: str, account_id: int | None = None) -> Any:
 # ----------------------------------------------------------------------- pastas
 @mcp.tool()
 def artia_list_folders(account_id: int | None = None, page: int | None = None) -> Any:
-    """Lista as pastas do grupo de trabalho, com a pasta/projeto pai (`parent`)."""
-    return _run(ops.LIST_FOLDERS, accountId=_account(account_id), page=page)
+    """Lista as pastas do grupo de trabalho, com a pasta/projeto pai (`parent`).
+
+    Sem `page`, percorre todas as páginas e devolve a lista completa.
+    """
+    account = _account(account_id)
+    if page is not None:
+        return _run(ops.LIST_FOLDERS, accountId=account, page=page)
+    folders: list[Any] = []
+    for number in range(1, MAX_PAGES + 1):
+        batch = _run(ops.LIST_FOLDERS, accountId=account, page=number)
+        if not batch:
+            break
+        folders.extend(batch)
+    return folders
 
 
 @mcp.tool()
@@ -227,9 +240,80 @@ def artia_change_activity_status(
 
 
 @mcp.tool()
-def artia_delete_activities(activity_ids: list[int], account_id: int | None = None) -> Any:
-    """EXCLUI atividades de forma definitiva (ids internos). Confirme com o usuário antes."""
-    return _run(ops.DESTROY_ACTIVITIES, ids=activity_ids, accountId=_account(account_id))
+def artia_delete_activities(
+    folder_id: int,
+    activity_ids: list[int],
+    expected_titles: list[str],
+    account_id: int | None = None,
+) -> Any:
+    """EXCLUI atividades de forma DEFINITIVA. Confirme com o usuário antes de chamar.
+
+    Trava de segurança: `expected_titles` (um por id, na mesma ordem) precisa
+    bater exatamente com o título atual de cada atividade; se algum divergir,
+    nada é excluído.
+    """
+    if len(activity_ids) != len(expected_titles):
+        raise ValueError("activity_ids e expected_titles precisam ter o mesmo tamanho.")
+    account = _account(account_id)
+    for activity_id, expected in zip(activity_ids, expected_titles):
+        current = _run(ops.SHOW_ACTIVITY, id=str(activity_id), accountId=account, folderId=folder_id)
+        if current["title"] != expected:
+            raise ValueError(
+                f"Atividade {activity_id} tem o título {current['title']!r}, "
+                f"e não {expected!r}. Nada foi excluído."
+            )
+    return _run(ops.DESTROY_ACTIVITIES, ids=activity_ids, accountId=account)
+
+
+@mcp.tool()
+def artia_list_dependencies(folder_id: int, activity_id: int | None = None) -> Any:
+    """Lista as dependências (predecessoras/sucessoras) de uma pasta ou atividade.
+
+    O caminho crítico do Artia é calculado a partir destas dependências e das datas.
+    """
+    try:
+        return _run(ops.LIST_DEPENDENCIES, folderId=folder_id, activityId=activity_id)
+    except ArtiaError as exc:
+        if "não possui" in str(exc):
+            return []
+        raise
+
+
+@mcp.tool()
+def artia_add_dependencies(
+    folder_id: int,
+    activity_id: int,
+    predecessor_ids: list[int] | None = None,
+    successor_ids: list[int] | None = None,
+) -> Any:
+    """Cria dependências para uma atividade (ids internos), no padrão fim-início do Artia."""
+    return _run(
+        ops.CREATE_DEPENDENCIES,
+        folderId=folder_id,
+        activityId=activity_id,
+        predecessors=[{"activityId": i} for i in predecessor_ids] if predecessor_ids else None,
+        successors=[{"activityId": i} for i in successor_ids] if successor_ids else None,
+    )
+
+
+def _participants(user_ids: list[int], role: str) -> list[dict[str, Any]]:
+    if role not in ("PARTICIPANT", "INFORMED"):
+        raise ValueError('role deve ser "PARTICIPANT" ou "INFORMED".')
+    return [{"userId": uid, "role": role} for uid in user_ids]
+
+
+@mcp.tool()
+def artia_add_participants(activity_id: int, user_ids: list[int], role: str = "PARTICIPANT") -> Any:
+    """Adiciona participantes (ou informados) a uma atividade. user_ids vêm de artia_list_participants."""
+    return _run(ops.ADD_PARTICIPANTS, activityId=activity_id, participants=_participants(user_ids, role))
+
+
+@mcp.tool()
+def artia_remove_participants(
+    activity_id: int, user_ids: list[int], role: str = "PARTICIPANT"
+) -> Any:
+    """Remove participantes de uma atividade (o responsável não é afetado)."""
+    return _run(ops.REMOVE_PARTICIPANTS, activityId=activity_id, participants=_participants(user_ids, role))
 
 
 # ------------------------------------------------------------------- consultas

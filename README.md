@@ -9,7 +9,7 @@ projetos, atividades e apontamentos de horas.
 |---|---|
 | Autenticação real (`scripts/test_auth.py`) | ✅ Validada |
 | Schema real (`schema/`, via `scripts/dump_schema.py`) | ✅ Versionado |
-| Operações contra o schema (`scripts/validate_operations.py`) | ✅ 17/17 válidas |
+| Operações contra o schema (`scripts/validate_operations.py`) | ✅ 21/21 válidas |
 | Leituras no Artia real (projetos, pastas, atividades, participantes, status, tipos, apontamentos) | ✅ Testadas |
 | Escritas (criar/atualizar atividade, atualizar pasta, remover participante, excluir atividade) | ✅ Usadas na atualização do projeto de modernização |
 | Apontamento de horas (`artia_create_time_entry`, `artia_delete_time_entry`) | ⚠️ Schema válido, mas nunca executado: a unidade de `duration` (minutos) não foi confirmada |
@@ -55,7 +55,11 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 | `artia_create_activity` | `createActivity` | escrita |
 | `artia_update_activity` | `updateActivity` | escrita |
 | `artia_change_activity_status` | `changeCustomStatusActivity` | escrita |
-| `artia_delete_activities` | `destroyActivities` | **escrita irreversível** |
+| `artia_delete_activities` | `destroyActivities` | **escrita irreversível** (exige os títulos esperados) |
+| `artia_list_dependencies` | `listingActivityDependencies` | leitura |
+| `artia_add_dependencies` | `createActivityDependencies` | escrita |
+| `artia_add_participants` | `addActivityParticipants` | escrita |
+| `artia_remove_participants` | `removeActivityParticipants` | escrita |
 | `artia_list_participants` | `listingAccountParticipants` | leitura |
 | `artia_list_custom_status` | `listingCustomStatus` | leitura |
 | `artia_list_activity_types` | `listingFolderTypes` | leitura |
@@ -71,7 +75,8 @@ Se o passo 3 apontar erro, ajuste o `OperationSpec` correspondente em `artia_mcp
 - **Atualização:** o schema exige `title` em todo `updateActivity`; a ferramenta lê e reenvia o título atual quando você não o informa.
 - **Campos calculados (somente leitura):** caminho crítico (`isCriticalPath`), % completo e situação de pastas/projetos são calculados pelo Artia a partir das atividades e das dependências.
 - **Status e tipos:** use os ids de `artia_list_custom_status` e `artia_list_activity_types`; não há status numérico fixo.
-- **Exclusão:** `artia_delete_activities` é definitiva. Confirme o alvo antes (id interno, título e `uid`).
+- **Exclusão:** `artia_delete_activities` é definitiva. Exige `expected_titles`: se o título atual de qualquer atividade divergir, nada é excluído.
+- **Caminho crítico:** só muda alterando dependências e datas (`artia_add_dependencies`); não há como gravá-lo diretamente.
 
 ## Uso no Claude Code
 

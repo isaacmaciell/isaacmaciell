@@ -220,6 +220,43 @@ DESTROY_ACTIVITIES = OperationSpec(
     required=("ids",),
 )
 
+LIST_DEPENDENCIES = OperationSpec(
+    "query",
+    "listingActivityDependencies",
+    {"folderId": "Int!", "activityId": "Int"},
+    "id\npredecessorId\nsuccessorId\nlinkType\nvariation",
+    required=("folderId",),
+)
+
+CREATE_DEPENDENCIES = OperationSpec(
+    "mutation",
+    "createActivityDependencies",
+    {
+        "folderId": "Int!",
+        "activityId": "Int!",
+        "predecessors": "[ActivityDependencyRelationInput!]",
+        "successors": "[ActivityDependencyRelationInput!]",
+    },
+    "__typename",
+    required=("folderId", "activityId"),
+)
+
+ADD_PARTICIPANTS = OperationSpec(
+    "mutation",
+    "addActivityParticipants",
+    {"activityId": "Int!", "participants": "[ActivityParticipantInput!]!"},
+    "id\nparticipants { id name role }",
+    required=("activityId", "participants"),
+)
+
+REMOVE_PARTICIPANTS = OperationSpec(
+    "mutation",
+    "removeActivityParticipants",
+    {"activityId": "Int!", "participants": "[ActivityParticipantInput!]!"},
+    "id\nparticipants { id name role }",
+    required=("activityId", "participants"),
+)
+
 # ----------------------------------------------------------------- consultas
 LIST_PARTICIPANTS = OperationSpec(
     "query",
@@ -286,6 +323,10 @@ ALL_OPERATIONS: dict[str, OperationSpec] = {
     "UPDATE_ACTIVITY": UPDATE_ACTIVITY,
     "CHANGE_ACTIVITY_STATUS": CHANGE_ACTIVITY_STATUS,
     "DESTROY_ACTIVITIES": DESTROY_ACTIVITIES,
+    "LIST_DEPENDENCIES": LIST_DEPENDENCIES,
+    "CREATE_DEPENDENCIES": CREATE_DEPENDENCIES,
+    "ADD_PARTICIPANTS": ADD_PARTICIPANTS,
+    "REMOVE_PARTICIPANTS": REMOVE_PARTICIPANTS,
     "LIST_PARTICIPANTS": LIST_PARTICIPANTS,
     "LIST_CUSTOM_STATUS": LIST_CUSTOM_STATUS,
     "LIST_FOLDER_TYPES": LIST_FOLDER_TYPES,

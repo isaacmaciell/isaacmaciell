@@ -198,3 +198,51 @@ def test_operations_match_real_schema():
     for name, spec in ops.ALL_OPERATIONS.items():
         errors = validate(schema, parse(spec.document(spec.arg_types)))
         assert not errors, f"{name}: {[e.message for e in errors]}"
+
+
+def test_delete_activities_refuses_when_title_differs(monkeypatch):
+    sent = []
+
+    def responder(body):
+        sent.append(body["query"])
+        return {"data": {"showActivity": {"title": "Outra atividade"}}}
+
+    _tool_client(monkeypatch, responder)
+    with pytest.raises(ValueError, match="Nada foi excluído"):
+        server.artia_delete_activities(5, [1], ["Testes de conceito"])
+    assert not any("destroyActivities" in q for q in sent)
+
+
+def test_delete_activities_deletes_when_title_matches(monkeypatch):
+    def responder(body):
+        if "showActivity" in body["query"]:
+            return {"data": {"showActivity": {"title": "Alvo"}}}
+        return {"data": {"destroyActivities": {"message": "ok"}}}
+
+    _tool_client(monkeypatch, responder)
+    assert server.artia_delete_activities(5, [1], ["Alvo"]) == {"message": "ok"}
+
+
+def test_list_folders_walks_all_pages(monkeypatch):
+    pages = {1: [{"id": "1"}], 2: [{"id": "2"}], 3: []}
+    _tool_client(
+        monkeypatch, lambda body: {"data": {"listingFolders": pages[body["variables"]["page"]]}}
+    )
+    assert [f["id"] for f in server.artia_list_folders()] == ["1", "2"]
+
+
+def test_add_dependencies_builds_relations(monkeypatch):
+    sent = {}
+
+    def responder(body):
+        sent.update(body)
+        return {"data": {"createActivityDependencies": {"__typename": "X"}}}
+
+    _tool_client(monkeypatch, responder)
+    server.artia_add_dependencies(5, 10, predecessor_ids=[7])
+    assert sent["variables"] == {"folderId": 5, "activityId": 10, "predecessors": [{"activityId": 7}]}
+
+
+def test_participants_rejects_invalid_role():
+    with pytest.raises(ValueError, match="role"):
+        server.artia_add_participants(1, [2], role="ADMIN")
