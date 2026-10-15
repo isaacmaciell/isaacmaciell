@@ -246,3 +246,16 @@ def test_add_dependencies_builds_relations(monkeypatch):
 def test_participants_rejects_invalid_role():
     with pytest.raises(ValueError, match="role"):
         server.artia_add_participants(1, [2], role="ADMIN")
+
+
+def test_change_status_sends_closed_flag(monkeypatch):
+    sent = {}
+
+    def responder(body):
+        sent.update(body)
+        return {"data": {"changeCustomStatusActivity": {"id": "1"}}}
+
+    _tool_client(monkeypatch, responder)
+    server.artia_change_activity_status("1", 5, 112293, closed=True)
+    assert sent["variables"]["status"] is True
+    assert sent["variables"]["customStatusId"] == 112293

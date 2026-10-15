@@ -209,7 +209,7 @@ CHANGE_ACTIVITY_STATUS = OperationSpec(
     "changeCustomStatusActivity",
     {"id": "ID!", "accountId": "Int", "folderId": "Int!", "customStatusId": "Int", "status": "Boolean"},
     ACTIVITY_FIELDS,
-    required=("id", "folderId"),
+    required=("id", "folderId", "status"),
 )
 
 DESTROY_ACTIVITIES = OperationSpec(

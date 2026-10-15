@@ -345,7 +345,10 @@ def _apply_update(tools: Any, state: ArtiaState, act: Action) -> None:
     if kwargs:
         tools.artia_update_activity(str(p["activity_id"]), p["folder_id"], **kwargs)
     if "status" in ch and ch["status"][1] in state.status_ids:
-        tools.artia_change_activity_status(str(p["activity_id"]), p["folder_id"], state.status_ids[ch["status"][1]])
+        new_status = ch["status"][1]
+        tools.artia_change_activity_status(
+            str(p["activity_id"]), p["folder_id"], state.status_ids[new_status], closed=new_status == "Encerrado"
+        )
     if "participants" in ch:
         cur, want = set(ch["participants"][0]), set(ch["participants"][1])
         add = [state.active_users[n] for n in want - cur if n in state.active_users]

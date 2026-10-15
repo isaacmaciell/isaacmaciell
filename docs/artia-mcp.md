@@ -75,7 +75,7 @@ Grupo de trabalho (accountId)
 | :--- | :--- | :--- |
 | `artia_create_activity` | Cria atividade em uma pasta | Responsável deve ser participante ativo; datas `AAAA-MM-DD` |
 | `artia_update_activity` | Atualiza campos informados | Reenvia o título atual se não informado (exigência do schema) |
-| `artia_change_activity_status` | Troca o status | Usa `custom_status_id` |
+| `artia_change_activity_status` | Troca o status | Usa `custom_status_id` e `closed` (True só para Encerrado); datas reais de término só são aceitas após a atividade deixar de ser pendente |
 | `artia_update_folder` | Atualiza datas/nome da pasta | % e situação são calculados pelo Artia |
 | `artia_add_dependencies` | Cria predecessoras/sucessoras | Único caminho para influenciar o caminho crítico |
 | `artia_add_participants` / `artia_remove_participants` | Gerencia participantes | `role`: `PARTICIPANT` ou `INFORMED` |

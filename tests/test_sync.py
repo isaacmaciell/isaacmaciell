@@ -104,4 +104,4 @@ def test_apply_update_only_sends_changed_fields():
     tools = FakeTools()
     sync.apply_plan(tools, make_state(), [act])
     assert tools.calls[0] == ("artia_update_activity", ("101", 10), {"estimated_end": "2026-01-15"})
-    assert tools.calls[1] == ("artia_change_activity_status", ("101", 10, 9), {})
+    assert tools.calls[1] == ("artia_change_activity_status", ("101", 10, 9), {"closed": True})

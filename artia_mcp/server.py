@@ -227,15 +227,25 @@ def artia_update_activity(
 
 @mcp.tool()
 def artia_change_activity_status(
-    activity_id: str, folder_id: int, custom_status_id: int, account_id: int | None = None
+    activity_id: str,
+    folder_id: int,
+    custom_status_id: int,
+    closed: bool,
+    account_id: int | None = None,
 ) -> Any:
-    """Altera o status de uma atividade (id de artia_list_custom_status)."""
+    """Altera o status de uma atividade (id de artia_list_custom_status).
+
+    `closed` indica se o status encerra a atividade (True para "Encerrado",
+    False para os demais): o Artia recusa a troca sem esse indicador. Datas
+    reais de término só são aceitas depois que a atividade deixa de ser pendente.
+    """
     return _run(
         ops.CHANGE_ACTIVITY_STATUS,
         id=str(activity_id),
         accountId=_account(account_id),
         folderId=folder_id,
         customStatusId=custom_status_id,
+        status=closed,
     )
 
 
