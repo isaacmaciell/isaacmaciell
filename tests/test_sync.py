@@ -105,3 +105,24 @@ def test_apply_update_only_sends_changed_fields():
     sync.apply_plan(tools, make_state(), [act])
     assert tools.calls[0] == ("artia_update_activity", ("101", 10), {"estimated_end": "2026-01-15"})
     assert tools.calls[1] == ("artia_change_activity_status", ("101", 10, 9), {"closed": True})
+
+
+def test_apply_creates_in_uid_order_and_adds_participants():
+    state = make_state()
+    mk = lambda ref, extra={}: sync.Action("CREATE", ref, ref, payload={"folder_id": 10, "title": ref, **extra})
+    plan = [mk("A9", {"_participants": [2]}), mk("A3")]
+
+    class Tools(FakeTools):
+        def __getattr__(self, name):
+            def call(*args, **kwargs):
+                self.calls.append((name, args, kwargs))
+                return {"uid": 1, "id": "55"}
+
+            return call
+
+    tools = Tools()
+    sync.apply_plan(tools, state, plan)
+    titles = [c[2]["title"] for c in tools.calls if c[0] == "artia_create_activity"]
+    assert titles == ["A3", "A9"]
+    assert ("artia_add_participants", (55, [2]), {}) in tools.calls
+    assert "_participants" not in next(c[2] for c in tools.calls if c[2].get("title") == "A9")

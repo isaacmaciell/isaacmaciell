@@ -228,6 +228,13 @@ def build_plan(
                     missing_users.setdefault(row.resources[0], []).append(row.id)
                     note = "responsável provisório" if fallback_responsible else "sem responsável"
                 payload["responsible_id"] = uid_resp
+            for name in row.resources[1:]:
+                if name not in state.active_users:
+                    missing_users.setdefault(name, []).append(row.id)
+            participants = [state.active_users[n] for n in row.resources[1:] if n in state.active_users]
+            participants = [u for u in participants if u != payload.get("responsible_id")]
+            if participants:
+                payload["_participants"] = participants  # aplicados após a criação
             folder_label = folder_names.get(str(row.folder_id), row.folder_id)
             note = "; ".join(x for x in (f"pasta inferida pela posição na planilha: {folder_label}", note) if x)
             plan.append(Action("CREATE", row.id, row.title, payload=payload, note=note))
@@ -301,7 +308,10 @@ def build_plan(
 def apply_plan(tools: Any, state: ArtiaState, plan: list[Action], allow_delete: bool = False) -> list[str]:
     """Executa o plano. Exclusões só com ``allow_delete`` e conferindo o título."""
     log: list[str] = []
-    for act in plan:
+    # criações na ordem dos códigos da planilha: o Artia atribui os uid em sequência
+    creates = sorted((a for a in plan if a.kind == "CREATE"), key=lambda a: int(a.ref[1:]))
+    ordered = [a for a in plan if a.kind == "FOLDER"] + creates + [a for a in plan if a.kind not in ("FOLDER", "CREATE")]
+    for act in ordered:
         if act.kind == "FOLDER":
             p = act.payload
             tools.artia_update_folder(
@@ -313,7 +323,11 @@ def apply_plan(tools: Any, state: ArtiaState, plan: list[Action], allow_delete: 
             )
             log.append(f"pasta {act.ref} atualizada")
         elif act.kind == "CREATE":
-            created = tools.artia_create_activity(**act.payload)
+            payload = dict(act.payload)
+            participants = payload.pop("_participants", [])
+            created = tools.artia_create_activity(**payload)
+            if participants:
+                tools.artia_add_participants(int(created["id"]), participants)
             log.append(f"criada {act.ref} -> uid {created.get('uid')}")
         elif act.kind == "UPDATE":
             _apply_update(tools, state, act)
