@@ -66,7 +66,7 @@ Detalhes técnicos em [docs/artia-mcp.md](docs/artia-mcp.md).
 | `artia_graphql` | qualquer (query livre) | avançado |
 | `artia_list_projects` / `artia_get_project` | `listingProjects` / `showProject` | leitura |
 | `artia_list_folders` | `listingFolders` (todas as páginas) | leitura |
-| `artia_update_folder` | `updateFolder` | escrita |
+| `artia_create_folder` / `artia_update_folder` | `createFolder` / `updateFolder` | escrita |
 | `artia_list_activities` / `artia_get_activity` | `listingActivities` / `showActivity` | leitura |
 | `artia_create_activity` | `createActivity` | escrita |
 | `artia_update_activity` | `updateActivity` | escrita |
@@ -211,6 +211,8 @@ python -m pytest -v
 * **Hierarquia:** projeto > pastas > atividades. `artia_list_activities` retorna só as atividades diretas da pasta; pasta com apenas subpastas retorna lista vazia.
 * **Responsável:** precisa ser participante **ativo** do grupo de trabalho. Usuário suspenso é recusado.
 * **Atualização:** o schema exige `title` em todo `updateActivity`; a ferramenta lê e reenvia o título atual quando não informado.
+* **Categoria:** `updateActivity` recusa atividade sem categoria ("categories não pode ficar vazio"); atividades criadas sem categoria precisam recebê-la (`category`, ex.: `Onda 1`) na primeira atualização.
+* **Caracteres nos títulos:** o Artia remove o travessão "–" (deixa espaço duplo); use hífen simples.
 * **Dependências:** `artia_list_dependencies` exige `activity_id`, apesar de o schema marcá-lo como opcional.
 * **Caminho crítico:** só muda alterando dependências e datas; não pode ser gravado diretamente.
 * **Apontamento de horas:** esforço em **horas** (`1,5` ou `01:30`, como no formulário do Artia). A API exige hora de início, que a tela trata como opcional.

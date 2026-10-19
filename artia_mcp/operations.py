@@ -155,6 +155,20 @@ UPDATE_FOLDER = OperationSpec(
     required=("id",),
 )
 
+CREATE_FOLDER = OperationSpec(
+    "mutation",
+    "createFolder",
+    {
+        "name": "String!",
+        "parentId": "Int!",
+        "accountId": "Int",
+        "estimatedStart": "DateTime",
+        "estimatedEnd": "DateTime",
+    },
+    FOLDER_FIELDS,
+    required=("name", "parentId"),
+)
+
 # ---------------------------------------------------------------- atividades
 LIST_ACTIVITIES = OperationSpec(
     "query",
@@ -317,6 +331,7 @@ ALL_OPERATIONS: dict[str, OperationSpec] = {
     "SHOW_PROJECT": SHOW_PROJECT,
     "LIST_FOLDERS": LIST_FOLDERS,
     "UPDATE_FOLDER": UPDATE_FOLDER,
+    "CREATE_FOLDER": CREATE_FOLDER,
     "LIST_ACTIVITIES": LIST_ACTIVITIES,
     "SHOW_ACTIVITY": SHOW_ACTIVITY,
     "CREATE_ACTIVITY": CREATE_ACTIVITY,

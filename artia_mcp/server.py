@@ -83,6 +83,25 @@ def artia_list_folders(account_id: int | None = None, page: int | None = None) -
 
 
 @mcp.tool()
+def artia_create_folder(
+    name: str,
+    parent_id: int,
+    account_id: int | None = None,
+    estimated_start: str | None = None,
+    estimated_end: str | None = None,
+) -> Any:
+    """Cria uma pasta dentro de um projeto ou de outra pasta (parent_id). Datas AAAA-MM-DD."""
+    return _run(
+        ops.CREATE_FOLDER,
+        name=name,
+        parentId=parent_id,
+        accountId=_account(account_id),
+        estimatedStart=estimated_start,
+        estimatedEnd=estimated_end,
+    )
+
+
+@mcp.tool()
 def artia_update_folder(
     folder_id: str,
     name: str | None = None,

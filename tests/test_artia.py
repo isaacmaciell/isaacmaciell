@@ -259,3 +259,15 @@ def test_change_status_sends_closed_flag(monkeypatch):
     server.artia_change_activity_status("1", 5, 112293, closed=True)
     assert sent["variables"]["status"] is True
     assert sent["variables"]["customStatusId"] == 112293
+
+
+def test_create_folder_sends_parent_and_dates(monkeypatch):
+    sent = {}
+
+    def responder(body):
+        sent.update(body)
+        return {"data": {"createFolder": {"id": "9"}}}
+
+    _tool_client(monkeypatch, responder)
+    assert server.artia_create_folder("Nova", 5, estimated_start="2026-10-19") == {"id": "9"}
+    assert sent["variables"] == {"name": "Nova", "parentId": 5, "accountId": 42, "estimatedStart": "2026-10-19"}
