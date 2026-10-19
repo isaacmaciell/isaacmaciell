@@ -10,7 +10,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "openpyxl>=3.1"]
+sync = ["openpyxl>=3.1"]
 
 [project.scripts]
 artia-mcp = "artia_mcp.server:main"
